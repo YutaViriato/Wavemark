@@ -1,65 +1,72 @@
 ---
 title: Wavemark
-description: Aponte para uma pasta de Markdown e ela vira um site.
+description: Point it at a folder of Markdown and it becomes a website.
 layout: landing
 ---
 
-<Hero eyebrow="Wavemark" title="Markdown que vira site enquanto você escreve" highlight="enquanto você escreve">
-Um binário, uma pasta de arquivos `.md` e nenhuma etapa de build. Feito para documentação longa escrita por pessoas e por agentes.
+<Hero eyebrow="Wavemark" title="Markdown that becomes a site while you write" highlight="while you write">
+One binary, a folder of `.md` files and no build step. Made for long-form documentation written by people and by agents.
 
-<Button href="./guia/instalacao.md" label="Começar" />
-<Button href="./referencia/componentes.md" label="Ver componentes" variant="secondary" />
+<Button href="./guide/install.md" label="Get started" />
+<Button href="./reference/components.md" label="See the components" variant="secondary" />
 </Hero>
 
-## Escreva Markdown. O resto é runtime.
+## Write Markdown. The rest is runtime.
 
 <Columns cols={3}>
-<Card title="Sem build" icon="bolt" href="./guia/index.md" cta="Como funciona">
-O servidor lê a pasta, guarda um snapshot em memória e reconstrói quando um arquivo muda.
+<Card title="No build step" icon="bolt" href="./guide/index.md" cta="How it works">
+The server reads the folder, keeps a snapshot in memory and rebuilds it when a file changes.
 </Card>
-<Card title="Estrito de propósito" icon="shield" href="./agentes.md" cta="Para agentes">
-Atributo desconhecido, link quebrado ou HTML cru viram erro com linha, coluna e dica de correção.
+<Card title="Strict on purpose" icon="shield" href="./agents.md" cta="For agents">
+An unknown attribute, a broken link or raw HTML becomes an error with a line, a column and a fix.
 </Card>
-<Card title="Componentes declarativos" icon="layers" href="./referencia/componentes.md" cta="Referência">
-Cards, abas, passos e destaques em tags estilo JSX, sem JavaScript no conteúdo.
+<Card title="Declarative components" icon="layers" href="./reference/components.md" cta="Reference">
+Cards, tabs, steps and callouts as JSX-style tags, with no JavaScript in your content.
 </Card>
 </Columns>
 
 <Columns cols={4}>
-<Stat value="1" label="binário, com tema, fontes e scripts embutidos" />
-<Stat value="0" label="etapas de build entre salvar e publicar" />
-<Stat value="~0,5 s" label="para reconstruir 600 páginas" />
-<Stat value="27" label="componentes, todos validados por schema" />
+<Stat value="1" label="binary, with theme, fonts and scripts embedded" />
+<Stat value="0" label="build steps between saving and publishing" />
+<Stat value="~0.5 s" label="to rebuild 600 pages" />
+<Stat value="29" label="components, each validated by a schema" />
 </Columns>
 
-<Section tone="dark">
-<Quote author="Equipe Wavemark" role="Princípio de projeto">
-Se um agente não consegue ver a página, cada erro precisa existir como texto: arquivo, linha, coluna e o que fazer.
-</Quote>
-</Section>
+## From file to page
 
-## Do arquivo à página
+<Flow caption="What happens when you save a file.">
+<FlowStep title="Your folder" icon="folder">Markdown, images, YAML</FlowStep>
+<FlowStep title="Parser" icon="code">goldmark and schemas</FlowStep>
+<FlowStep title="Snapshot" icon="layers">rebuilt in memory</FlowStep>
+<FlowStep title="Browser" icon="globe">served, reloaded live</FlowStep>
+</Flow>
 
 <CodeGroup>
-```bash title="Servidor de desenvolvimento"
+```bash title="Development"
 wavemark dev site
 ```
-```bash title="Validação"
+```bash title="Validation"
 wavemark check site --json
 ```
-```bash title="Produção"
+```bash title="Production"
 wavemark serve site --addr :8080
 ```
 </CodeGroup>
 
-## Do blog
+<Section tone="dark">
+<Quote author="The Wavemark team" role="Design principle">
+If an agent cannot see the page, every mistake has to exist as text: the file, the line, the column and what to do about it.
+</Quote>
+</Section>
+
+## From the blog
 
 <PageList dir="./blog" style="cards" limit={3} />
 
 <Section tone="oat" align="center">
-## Comece com uma pasta
+## Start with a folder
 
-Crie um arquivo `.md`, rode `wavemark dev` e abra o navegador.
+Create a `.md` file, run `wavemark dev` and open your browser.
 
-<Button href="./guia/instalacao.md" label="Instalar o Wavemark" />
+<Button href="./guide/install.md" label="Install Wavemark" />
 </Section>

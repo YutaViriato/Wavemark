@@ -20,7 +20,7 @@ func run(t *testing.T, src, layout string) result {
 	d := &diag.List{File: "t.md"}
 	doc := Parse([]byte(src), 0, d)
 	a := Analyze(doc, layout, false, d)
-	html, err := Render(doc, RenderOptions{Layout: layout, Lang: "pt-BR"})
+	html, err := Render(doc, RenderOptions{Layout: layout, Lang: "en"})
 	if err != nil {
 		t.Fatalf("render: %v", err)
 	}
@@ -35,7 +35,7 @@ func (r result) has(t *testing.T, subs ...string) {
 	t.Helper()
 	for _, s := range subs {
 		if !strings.Contains(r.html, s) {
-			t.Errorf("HTML sem %q:\n%s", s, r.html)
+			t.Errorf("HTML is missing %q:\n%s", s, r.html)
 		}
 	}
 }
@@ -44,7 +44,7 @@ func (r result) lacks(t *testing.T, subs ...string) {
 	t.Helper()
 	for _, s := range subs {
 		if strings.Contains(r.html, s) {
-			t.Errorf("HTML não deveria ter %q:\n%s", s, r.html)
+			t.Errorf("HTML should not contain %q:\n%s", s, r.html)
 		}
 	}
 }
@@ -53,7 +53,7 @@ func (r result) clean(t *testing.T) {
 	t.Helper()
 	for _, d := range r.diags {
 		if d.Severity == diag.Error {
-			t.Errorf("erro inesperado: %s", d)
+			t.Errorf("unexpected error: %s", d)
 		}
 	}
 }
@@ -65,24 +65,24 @@ func (r result) code(t *testing.T, code string, line int) {
 			return
 		}
 	}
-	t.Errorf("esperava %s na linha %d; diagnósticos: %v", code, line, r.diags)
+	t.Errorf("expected %s on line %d; diagnostics: %v", code, line, r.diags)
 }
 
 func TestNestedComponentsAndIndentation(t *testing.T) {
 	r := run(t, `<Tabs>
   <Tab title="A">
-    Texto **forte**.
+    Some **bold** text.
 
     - item
-      - aninhado
+      - nested
   </Tab>
-  <Tab title="B">Uma linha</Tab>
+  <Tab title="B">One line</Tab>
 </Tabs>
 `, "docs")
 	r.clean(t)
-	r.has(t, `role="tab"`, `<strong>forte</strong>`, `<li>aninhado</li>`, `<p>Uma linha</p>`)
+	r.has(t, `role="tab"`, `<strong>bold</strong>`, `<li>nested</li>`, `<p>One line</p>`)
 	if strings.Count(r.html, `role="tabpanel"`) != 2 {
-		t.Errorf("esperava 2 painéis:\n%s", r.html)
+		t.Errorf("expected 2 panels:\n%s", r.html)
 	}
 }
 
@@ -90,11 +90,11 @@ func TestSameNameNesting(t *testing.T) {
 	r := run(t, "<Columns>\n<Columns cols={1}>\n<Card title=\"in\">x</Card>\n</Columns>\n<Card title=\"out\">y</Card>\n</Columns>\n", "docs")
 	r.clean(t)
 	if strings.Count(r.html, `wm-columns--`) != 2 {
-		t.Errorf("esperava dois Columns:\n%s", r.html)
+		t.Errorf("expected two Columns:\n%s", r.html)
 	}
 	// "out" must be inside the outer grid, after the inner one closed.
 	if i, j := strings.Index(r.html, "wm-columns--1"), strings.Index(r.html, ">out<"); i < 0 || j < i {
-		t.Errorf("ordem errada:\n%s", r.html)
+		t.Errorf("wrong order:\n%s", r.html)
 	}
 }
 
@@ -105,21 +105,21 @@ func TestClosingTagInsideFenceIsCode(t *testing.T) {
 }
 
 func TestSelfClosingInsideContainer(t *testing.T) {
-	r := run(t, "<Hero title=\"Oi\">\nSub.\n<Button href=\"/\" label=\"Ir\" />\n<Button href=\"/b\">Outro</Button>\n</Hero>\n", "landing")
+	r := run(t, "<Hero title=\"Hi\">\nSub.\n<Button href=\"/\" label=\"Go\" />\n<Button href=\"/b\">Other</Button>\n</Hero>\n", "landing")
 	r.clean(t)
-	r.has(t, `<div class="wm-actions"><a class="wm-button wm-button--primary" href="/">Ir</a><a class="wm-button wm-button--primary" href="/b">Outro</a></div>`)
-	r.lacks(t, "<p>Outro</p>")
+	r.has(t, `<div class="wm-actions"><a class="wm-button wm-button--primary" href="/">Go</a><a class="wm-button wm-button--primary" href="/b">Other</a></div>`)
+	r.lacks(t, "<p>Other</p>")
 }
 
 func TestMultilineOpeningTag(t *testing.T) {
-	r := run(t, "<Card\n  title=\"Longo\"\n  icon=\"rocket\"\n>\nCorpo.\n</Card>\n", "docs")
+	r := run(t, "<Card\n  title=\"Long\"\n  icon=\"rocket\"\n>\nBody.\n</Card>\n", "docs")
 	r.clean(t)
-	r.has(t, ">Longo<", "wm-sketch", "<p>Corpo.</p>")
+	r.has(t, ">Long<", "wm-sketch", "<p>Body.</p>")
 }
 
 func TestComponentErrors(t *testing.T) {
 	r := run(t, `<Note>
-sem fechar
+never closed
 
 </Steps>
 
@@ -131,7 +131,7 @@ sem fechar
 
 <Card titl="a">b</Card>
 
-<Accordion title="x" open="sim">y</Accordion>
+<Accordion title="x" open="yes">y</Accordion>
 `, "docs")
 	r.code(t, diag.CodeComponentUnclosed, 1)
 	r.code(t, diag.CodeComponentStray, 4)
@@ -143,39 +143,39 @@ sem fechar
 	r.code(t, diag.CodeAttrValue, 14)
 	for _, d := range r.diags {
 		if d.Code == diag.CodeComponentUnknown && !strings.Contains(d.Hint, "<Card>") {
-			t.Errorf("dica sem sugestão: %s", d.Hint)
+			t.Errorf("hint without a suggestion: %s", d.Hint)
 		}
 		if d.Line == 8 && !strings.Contains(d.Hint, `type="warning"`) {
-			t.Errorf("dica de valor sem alias: %s", d.Hint)
+			t.Errorf("value hint without alias: %s", d.Hint)
 		}
 	}
 }
 
 func TestMismatchedCloseRecovers(t *testing.T) {
-	r := run(t, "<Card title=\"a\">\n<Note>\ntexto\n</Card>\n\ndepois\n", "docs")
+	r := run(t, "<Card title=\"a\">\n<Note>\ntext\n</Card>\n\nafter\n", "docs")
 	r.code(t, diag.CodeComponentUnclosed, 2) // the Note
 	for _, d := range r.diags {
 		if d.Code == diag.CodeComponentUnclosed && d.Line == 1 {
-			t.Errorf("o Card foi fechado e não deveria aparecer como aberto: %v", r.diags)
+			t.Errorf("the Card was closed and should not be reported as open: %v", r.diags)
 		}
 	}
-	r.has(t, "<p>depois</p>")
+	r.has(t, "<p>after</p>")
 }
 
 func TestCompatibilityAliases(t *testing.T) {
-	r := run(t, "<CardGroup cols=\"3\">\n<Card title=\"A\" icon=\"bolt-lightning\">a</Card>\n</CardGroup>\n\n<AccordionGroup>\n<Accordion title=\"P\" open=\"true\">R</Accordion>\n</AccordionGroup>\n\n<Check>ok</Check>\n", "docs")
+	r := run(t, "<CardGroup cols=\"3\">\n<Card title=\"A\" icon=\"bolt-lightning\">a</Card>\n</CardGroup>\n\n<AccordionGroup>\n<Accordion title=\"Q\" open=\"true\">A</Accordion>\n</AccordionGroup>\n\n<Check>ok</Check>\n", "docs")
 	r.clean(t)
 	r.has(t, "wm-columns--3", "wm-accordion-group", "<details class=\"wm-accordion\" open>", "wm-callout--success")
 }
 
 func TestRawHTMLIsForbidden(t *testing.T) {
-	r := run(t, "Linha<br>quebrada e <Card title=\"x\"> no meio.\n\n<div>x</div>\n\n<!-- comentário -->\n", "docs")
+	r := run(t, "Broken<br>line and <Card title=\"x\"> in the middle.\n\n<div>x</div>\n\n<!-- a comment -->\n", "docs")
 	r.code(t, diag.CodeHTMLForbidden, 1)
 	r.code(t, diag.CodeHTMLForbidden, 3)
 	if n := slices.Index(r.codes, diag.CodeHTMLForbidden); n < 0 {
-		t.Fatal("sem html.forbidden")
+		t.Fatal("no html.forbidden")
 	}
-	r.lacks(t, "<div>x</div>", "<br>", "comentário")
+	r.lacks(t, "<div>x</div>", "<br>", "a comment")
 	count := 0
 	for _, c := range r.codes {
 		if c == diag.CodeHTMLForbidden {
@@ -183,66 +183,66 @@ func TestRawHTMLIsForbidden(t *testing.T) {
 		}
 	}
 	if count != 3 {
-		t.Errorf("esperava 3 erros de HTML (br, Card inline, div), veio %d: %v", count, r.diags)
+		t.Errorf("expected 3 HTML errors (br, inline Card, div), got %d: %v", count, r.diags)
 	}
 }
 
 func TestIndentedCodeIsReportedAndContentKept(t *testing.T) {
-	r := run(t, "# T\n\nTexto.\n\n    codigo\n\n[q](./nao.md)\n\n## Dois\n", "docs")
+	r := run(t, "# T\n\nText.\n\n    code\n\n[q](./missing.md)\n\n## Two\n", "docs")
 	r.code(t, diag.CodeIndentedCode, 5)
-	if len(r.a.Headings) != 1 || r.a.Headings[0].ID != "dois" {
-		t.Errorf("títulos depois do bloco indentado se perderam: %+v", r.a.Headings)
+	if len(r.a.Headings) != 1 || r.a.Headings[0].ID != "two" {
+		t.Errorf("headings after the indented block were lost: %+v", r.a.Headings)
 	}
 	if len(r.a.Refs) != 1 {
-		t.Errorf("links depois do bloco indentado se perderam: %+v", r.a.Refs)
+		t.Errorf("links after the indented block were lost: %+v", r.a.Refs)
 	}
 }
 
 func TestInlineComponents(t *testing.T) {
-	r := run(t, "## Exportar <Badge color=\"clay\">Novo</Badge>\n\n<Badge>Beta</Badge> no começo da linha e <Icon name=\"rocket\" /> no meio.\n\n| a | b |\n|---|---|\n| <Badge color=\"olive\">ok</Badge> | x |\n", "docs")
+	r := run(t, "## Export <Badge color=\"clay\">New</Badge>\n\n<Badge>Beta</Badge> at the start of the line and <Icon name=\"rocket\" /> in the middle.\n\n| a | b |\n|---|---|\n| <Badge color=\"olive\">ok</Badge> | x |\n", "docs")
 	r.clean(t)
-	r.has(t, `<span class="wm-badge wm-badge--clay">Novo</span>`, `<span class="wm-badge wm-badge--gray">Beta</span>`, `wm-inline-icon`, `wm-badge--olive`)
-	if r.a.Headings[0].ID != "exportar" {
-		t.Errorf("id do título: %q", r.a.Headings[0].ID)
+	r.has(t, `<span class="wm-badge wm-badge--clay">New</span>`, `<span class="wm-badge wm-badge--gray">Beta</span>`, `wm-inline-icon`, `wm-badge--olive`)
+	if r.a.Headings[0].ID != "export" {
+		t.Errorf("heading id: %q", r.a.Headings[0].ID)
 	}
-	r2 := run(t, "Texto <Badge>sem fechar\n", "docs")
+	r2 := run(t, "Text <Badge>never closed\n", "docs")
 	r2.code(t, diag.CodeHTMLForbidden, 1)
-	if !strings.Contains(r2.diags[0].Hint, "mesma linha") {
-		t.Errorf("dica: %s", r2.diags[0].Hint)
+	if !strings.Contains(r2.diags[0].Hint, "same line") {
+		t.Errorf("hint: %s", r2.diags[0].Hint)
 	}
 }
 
 func TestTitleRules(t *testing.T) {
-	r := run(t, "# Título\n\nTexto.\n\n# Outro\n", "docs")
-	if r.a.Title != "Título" {
-		t.Errorf("título: %q", r.a.Title)
+	r := run(t, "# Title\n\nText.\n\n# Another\n", "docs")
+	if r.a.Title != "Title" {
+		t.Errorf("title: %q", r.a.Title)
 	}
 	r.code(t, diag.CodeTitleMultipleH1, 5)
-	r.lacks(t, ">Título<") // the first H1 moves to the layout
+	r.lacks(t, ">Title<") // the first H1 moves to the layout
 
 	d := &diag.List{}
-	doc := Parse([]byte("# Corpo\n"), 3, d)
+	doc := Parse([]byte("# Body\n"), 3, d)
 	Analyze(doc, "docs", true, d)
 	if len(d.Items) != 1 || d.Items[0].Code != diag.CodeTitleDuplicate || d.Items[0].Line != 4 {
-		t.Errorf("título duplicado com deslocamento do frontmatter: %v", d.Items)
+		t.Errorf("duplicate title with the frontmatter offset: %v", d.Items)
 	}
 }
 
 func TestSlugs(t *testing.T) {
 	for in, want := range map[string]string{
-		"Configuração avançada": "configuracao-avancada",
-		"Por que `Go`?":         "por-que-go",
-		"Ação & reação":         "acao-reacao",
-		"日本語":                   "日本語",
+		"Advanced Setup":   "advanced-setup",
+		"Why `Go`?":        "why-go",
+		"Café crème & thé": "cafe-creme-the",
+		"日本語":              "日本語",
 	} {
 		if got := Slug(in); got != want {
-			t.Errorf("Slug(%q) = %q, quero %q", in, got, want)
+			t.Errorf("Slug(%q) = %q, want %q", in, got, want)
 		}
 	}
 }
 
 func TestWarnings(t *testing.T) {
-	r := run(t, "Texto com nota[^x].\n\n![](./a.png)\n\n```mermaid\ngraph TD\n```\n", "docs")
+	r := run(t, "Text with a note[^x].\n\n![](./a.png)\n\n```mermaid\ngraph TD\n```\n", "docs")
 	r.code(t, diag.CodeLinkBroken, 1)
 	r.code(t, diag.CodeAltMissing, 3)
 	r.code(t, diag.CodeFenceLang, 5)
@@ -255,9 +255,9 @@ func TestEscaping(t *testing.T) {
 }
 
 func TestHeroHighlight(t *testing.T) {
-	r := run(t, "<Hero title=\"Docs que se escrevem\" highlight=\"se escrevem\">\nx\n</Hero>\n", "landing")
+	r := run(t, "<Hero title=\"Docs that write themselves\" highlight=\"write themselves\">\nx\n</Hero>\n", "landing")
 	r.clean(t)
-	r.has(t, `<span class="wm-mark"><span class="wm-word">se</span> <span class="wm-word">escrevem</span>`, "wm-mark__line")
-	r2 := run(t, "<Hero title=\"Docs\" highlight=\"nada\">\nx\n</Hero>\n", "landing")
+	r.has(t, `<span class="wm-mark"><span class="wm-word">write</span> <span class="wm-word">themselves</span>`, "wm-mark__line")
+	r2 := run(t, "<Hero title=\"Docs\" highlight=\"nothing\">\nx\n</Hero>\n", "landing")
 	r2.code(t, diag.CodeAttrValue, 1)
 }

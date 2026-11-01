@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -39,6 +40,7 @@ type Server struct {
 	subsMu  sync.Mutex
 	subs    map[chan struct{}]struct{}
 	done    chan struct{} // closed on shutdown so event streams end
+	bootID  string        // changes on every start; dev clients reload when it changes
 }
 
 // New builds the first snapshot. In serve mode (dev=false) it fails when the
@@ -48,7 +50,7 @@ func New(root string, dev bool, logger *log.Logger) (*Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := &Server{root: root, dev: dev, theme: th, log: logger, subs: map[chan struct{}]struct{}{}, done: make(chan struct{})}
+	s := &Server{root: root, dev: dev, theme: th, log: logger, subs: map[chan struct{}]struct{}{}, done: make(chan struct{}), bootID: strconv.FormatInt(time.Now().UnixNano(), 36)}
 	st, err := s.build(nil)
 	if err != nil {
 		return nil, err
@@ -65,7 +67,7 @@ type ContentError struct{ Diags []diag.Diagnostic }
 
 func (e *ContentError) Error() string {
 	n, _ := diag.Count(e.Diags)
-	return fmt.Sprintf("o conteúdo tem %d erro(s); corrija com 'wavemark check' antes de servir", n)
+	return fmt.Sprintf("the content has %d error(s); fix them with 'wavemark check' before serving", n)
 }
 
 func (s *Server) build(prev *site.Site) (*site.Site, error) {
@@ -81,9 +83,15 @@ func (s *Server) build(prev *site.Site) (*site.Site, error) {
 }
 
 func (s *Server) swap(st *site.Site) {
-	nf, err := s.theme.RenderNotFound(st, theme.Options{Dev: s.dev})
+	var nf []byte
+	var err error
+	if p := st.NotFound; p != nil && p.HTML != nil {
+		nf = p.HTML // the site's own 404.md
+	} else {
+		nf, err = s.theme.RenderNotFound(st, theme.Options{Dev: s.dev})
+	}
 	if err != nil {
-		s.log.Printf("erro renderizando 404: %v", err)
+		s.log.Printf("error rendering 404: %v", err)
 		nf = []byte("404")
 	}
 	css := theme.SiteFontsCSS(st.Fonts)
@@ -103,21 +111,21 @@ func (s *Server) Rebuild() {
 	prev := s.site.Load()
 	st, err := s.build(prev)
 	if err != nil {
-		s.log.Printf("erro: %v", err)
+		s.log.Printf("error: %v", err)
 		return
 	}
 	s.swap(st)
 	errs, warns := diag.Count(st.Diags)
-	s.log.Printf("reconstruído em %s · %d páginas · %d erro(s) · %d aviso(s)", time.Since(start).Round(time.Millisecond), len(st.Pages), errs, warns)
+	s.log.Printf("rebuilt in %s · %d pages · %d error(s) · %d warning(s)", time.Since(start).Round(time.Millisecond), len(st.Pages), errs, warns)
 	for _, d := range st.Diags {
 		s.log.Print(d.String())
 	}
 	if !s.dev {
 		for _, p := range st.Pages {
 			if p.Stale {
-				s.log.Printf("%s: servindo a última versão válida até os erros serem corrigidos", p.Rel)
+				s.log.Printf("%s: serving the last valid version until the errors are fixed", p.Rel)
 			} else if p.Unpublished {
-				s.log.Printf("%s: não publicada (tem erros e nenhuma versão válida anterior)", p.Rel)
+				s.log.Printf("%s: not published (has errors and no previous valid version)", p.Rel)
 			}
 		}
 	}
@@ -236,7 +244,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.Set("Content-Security-Policy", csp)
 	if r.Method != http.MethodGet && r.Method != http.MethodHead {
 		h.Set("Allow", "GET, HEAD")
-		http.Error(w, "método não permitido", http.StatusMethodNotAllowed)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	p := r.URL.Path
@@ -344,7 +352,7 @@ func (s *Server) serveRuntime(w http.ResponseWriter, r *http.Request, rest strin
 func (s *Server) serveEvents(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "streaming não suportado", http.StatusInternalServerError)
+		http.Error(w, "streaming not supported", http.StatusInternalServerError)
 		return
 	}
 	h := w.Header()
@@ -353,7 +361,9 @@ func (s *Server) serveEvents(w http.ResponseWriter, r *http.Request) {
 	h.Set("Connection", "keep-alive")
 	ch := s.subscribe()
 	defer s.unsubscribe(ch)
-	_, _ = io.WriteString(w, "retry: 1000\n: conectado\n\n")
+	// The boot id lets a page that outlived a server restart (for example
+	// after rebuilding the binary) notice and reload itself.
+	_, _ = io.WriteString(w, "retry: 500\nevent: hello\ndata: "+s.bootID+"\n\n")
 	flusher.Flush()
 	ping := time.NewTicker(25 * time.Second)
 	defer ping.Stop()

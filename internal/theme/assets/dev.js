@@ -10,9 +10,16 @@
     }
   } catch (e) {}
   if (!window.EventSource) return;
-  var es = new EventSource("/_wavemark/events");
-  es.addEventListener("reload", function () {
+  function reload() {
     try { sessionStorage.setItem(key, String(window.scrollY)); } catch (e) {}
     location.reload();
+  }
+  var boot = null;
+  var es = new EventSource("/_wavemark/events");
+  es.addEventListener("reload", reload);
+  // A different boot id means the server restarted (new binary): reload too.
+  es.addEventListener("hello", function (e) {
+    if (boot !== null && boot !== e.data) reload();
+    boot = e.data;
   });
 })();

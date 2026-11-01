@@ -40,9 +40,12 @@ type Site struct {
 	TopNav  []NavLink
 	Footer  Footer
 	Fonts   Fonts
-	Diags   []diag.Diagnostic
-	Built   time.Time
-	T       func(string) string
+	// NotFound is the page built from 404.md at the root, if any. It is
+	// served with status 404 for unknown routes and kept out of navigation.
+	NotFound *Page
+	Diags    []diag.Diagnostic
+	Built    time.Time
+	T        func(string) string
 
 	byRel    map[string]*Page
 	dirs     map[string]bool
@@ -133,9 +136,9 @@ func Build(opts Options) (*Site, error) {
 		return nil, err
 	}
 	if fi, err := os.Stat(root); err != nil {
-		return nil, fmt.Errorf("pasta do site: %w", err)
+		return nil, fmt.Errorf("site folder: %w", err)
 	} else if !fi.IsDir() {
-		return nil, fmt.Errorf("%s não é uma pasta", root)
+		return nil, fmt.Errorf("%s is not a folder", root)
 	}
 	s := &Site{Root: root, ByRoute: map[string]*Page{}, ByRaw: map[string]*Page{}, Assets: map[string]string{}, byRel: map[string]*Page{}, Built: time.Now()}
 
@@ -172,7 +175,7 @@ func Build(opts Options) (*Site, error) {
 			fd := &diag.List{File: rel}
 			data, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 			if err != nil {
-				fd.Errorf(0, 0, diag.CodeConfigInvalid, "", "não foi possível ler: %v", err)
+				fd.Errorf(0, 0, diag.CodeConfigInvalid, "", "cannot read: %v", err)
 			} else {
 				f = config.LoadFolder(data, fd)
 			}
@@ -196,7 +199,7 @@ func Build(opts Options) (*Site, error) {
 	// Routes.
 	for _, p := range pages {
 		if other, ok := s.ByRoute[p.Route]; ok {
-			addDiag(p, diag.Diagnostic{Line: 1, Code: diag.CodeRouteConflict, Message: fmt.Sprintf("a rota %s também é gerada por %s", p.Route, other.Rel), Hint: "Renomeie ou remova um dos arquivos (index.md e README.md na mesma pasta, ou x.md e x/index.md, geram a mesma rota)."})
+			addDiag(p, diag.Diagnostic{Line: 1, Code: diag.CodeRouteConflict, Message: fmt.Sprintf("route %s is also produced by %s", p.Route, other.Rel), Hint: "Rename or remove one of the files (index.md and README.md in the same folder, or x.md and x/index.md, produce the same route)."})
 			continue
 		}
 		s.ByRoute[p.Route] = p
@@ -219,6 +222,7 @@ func Build(opts Options) (*Site, error) {
 	s.Footer = Footer{Text: s.Config.Footer.Text, Links: s.resolveLinks(s.Config.Footer.Links, "footer.links", siteDiags)}
 	s.Fonts = s.resolveFonts(siteDiags)
 
+	s.NotFound = s.byRel["404.md"]
 	s.Nav = s.buildNav(pages, folders)
 	s.Pages = s.flatten(pages)
 	s.linkPrevNext()
@@ -227,7 +231,7 @@ func Build(opts Options) (*Site, error) {
 	parallel(s.Pages, func(p *Page) {
 		body, err := markdown.Render(p.doc, markdown.RenderOptions{URL: s.urlFor(p), T: s.T, Pages: s.pagesFor(p), Layout: p.Settings.Layout, Lang: s.Config.Lang})
 		if err != nil {
-			addDiag(p, diag.Diagnostic{Code: diag.CodeConfigInvalid, Message: "falha ao renderizar: " + err.Error()})
+			addDiag(p, diag.Diagnostic{Code: diag.CodeConfigInvalid, Message: "render failed: " + err.Error()})
 		}
 		p.Body = body
 		p.doc, p.analysis = nil, nil // the AST is not needed after rendering
@@ -246,7 +250,7 @@ func Build(opts Options) (*Site, error) {
 			if err != nil {
 				mu.Lock()
 				if firstErr == nil {
-					firstErr = fmt.Errorf("renderizando %s: %w", p.Rel, err)
+					firstErr = fmt.Errorf("rendering %s: %w", p.Rel, err)
 				}
 				mu.Unlock()
 				return
@@ -316,13 +320,16 @@ func loadPage(root, rel string, cascade config.Defaults) *Page {
 
 	src, err := os.ReadFile(p.Abs)
 	if err != nil {
-		dl.Errorf(0, 0, diag.CodeConfigInvalid, "", "não foi possível ler: %v", err)
+		dl.Errorf(0, 0, diag.CodeConfigInvalid, "", "cannot read: %v", err)
 		src = nil
 	}
 	p.Source = src
 	fmData, body, yamlOffset, bodyOffset := config.SplitFrontmatter(src, dl)
 	fm := config.LoadFrontmatter(fmData, yamlOffset, dl)
 	p.Settings = config.Resolve(cascade, fm)
+	if rel == "404.md" {
+		p.Settings.Hidden = true
+	}
 
 	p.doc = markdown.Parse(body, bodyOffset, dl)
 	p.analysis = markdown.Analyze(p.doc, p.Settings.Layout, fm.Title != nil, dl)
@@ -338,15 +345,15 @@ func loadPage(root, rel string, cascade config.Defaults) *Page {
 		p.Title = p.analysis.HeroTitle
 	default:
 		p.Title = prettify(p.slug)
-		dl.Warnf(1, 1, diag.CodeTitleMissing, "Adicione 'title:' no frontmatter ou comece o corpo com '# Título'.", "página sem título; usando o nome do arquivo (%q)", p.Title)
+		dl.Warnf(1, 1, diag.CodeTitleMissing, "Add 'title:' to the frontmatter or start the body with '# Title'.", "page has no title; using the file name (%q)", p.Title)
 	}
 	if icon := p.Settings.Icon; icon != "" {
 		if _, _, ok := sketch.Lookup(icon); !ok {
-			hint := "Ícones disponíveis: " + strings.Join(sketch.Names(), ", ") + "."
+			hint := "Available icons: " + strings.Join(sketch.Names(), ", ") + "."
 			if sug := diag.Suggest(icon, sketch.AllNames()); sug != "" {
-				hint = fmt.Sprintf("Você quis dizer %q? %s", sug, hint)
+				hint = fmt.Sprintf("Did you mean %q? %s", sug, hint)
 			}
-			dl.Errorf(0, 0, diag.CodeIconUnknown, hint, "ícone desconhecido %q no frontmatter", icon)
+			dl.Errorf(0, 0, diag.CodeIconUnknown, hint, "unknown icon %q in the frontmatter", icon)
 			p.Settings.Icon = ""
 		}
 	}

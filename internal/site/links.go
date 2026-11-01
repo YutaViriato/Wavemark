@@ -27,7 +27,7 @@ func (r resolution) ok() bool { return r.code == "" }
 func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 	dest = strings.TrimSpace(dest)
 	if dest == "" {
-		return resolution{code: diag.CodeLinkBroken, msg: "destino vazio", hint: "Preencha o destino do link."}
+		return resolution{code: diag.CodeLinkBroken, msg: "empty destination", hint: "Fill in the link destination."}
 	}
 	if strings.HasPrefix(dest, "//") {
 		return resolution{href: "https:" + dest, isExternal: true}
@@ -41,7 +41,7 @@ func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 				return resolution{href: dest, isExternal: true}
 			}
 		}
-		return resolution{code: diag.CodeLinkUnsafe, msg: fmt.Sprintf("esquema de URL não permitido: %s", u.Scheme), hint: "Use http(s), mailto, tel, uma rota (/guia) ou um arquivo relativo (./guia.md)."}
+		return resolution{code: diag.CodeLinkUnsafe, msg: fmt.Sprintf("URL scheme not allowed: %s", u.Scheme), hint: "Use http(s), mailto, tel, a route (/guide) or a relative file (./guide.md)."}
 	}
 
 	p, frag, _ := strings.Cut(dest, "#")
@@ -55,7 +55,7 @@ func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 
 	if p == "" { // same-page anchor
 		if asset {
-			return resolution{code: diag.CodeAssetMissing, msg: "destino de arquivo vazio", hint: "Aponte para um arquivo, como ./imagem.png."}
+			return resolution{code: diag.CodeAssetMissing, msg: "empty file destination", hint: "Point to a file, such as ./image.png."}
 		}
 		if from != nil && from.IDs != nil && !from.IDs[frag] {
 			return anchorProblem(from, frag)
@@ -77,7 +77,7 @@ func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 		clean = ""
 	}
 	if strings.HasPrefix(clean, "../") || clean == ".." {
-		return resolution{code: diag.CodeLinkBroken, msg: fmt.Sprintf("%s aponta para fora da pasta do site", dest), hint: "Links só podem apontar para arquivos dentro do site."}
+		return resolution{code: diag.CodeLinkBroken, msg: fmt.Sprintf("%s points outside the site folder", dest), hint: "Links can only point to files inside the site."}
 	}
 	suffix := ""
 	if query != "" {
@@ -88,7 +88,7 @@ func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 		if _, ok := s.Assets["/"+clean]; ok {
 			return resolution{href: "/" + clean + suffix}
 		}
-		return resolution{code: diag.CodeAssetMissing, msg: fmt.Sprintf("arquivo %s não existe", "/"+clean), hint: s.assetHint(clean)}
+		return resolution{code: diag.CodeAssetMissing, msg: fmt.Sprintf("file %s does not exist", "/"+clean), hint: s.assetHint(clean)}
 	}
 
 	target := s.findPage(clean, strings.HasPrefix(p, "/"))
@@ -99,7 +99,7 @@ func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 		if _, ok := s.Assets["/"+clean]; ok {
 			return resolution{href: "/" + clean + suffix}
 		}
-		return resolution{code: diag.CodeLinkBroken, msg: fmt.Sprintf("link para página inexistente: %s", dest), hint: s.pageHint(clean)}
+		return resolution{code: diag.CodeLinkBroken, msg: fmt.Sprintf("link to a page that does not exist: %s", dest), hint: s.pageHint(clean)}
 	}
 	href := target.Route + suffix
 	if frag != "" {
@@ -134,15 +134,15 @@ func anchorProblem(target *Page, frag string) resolution {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	hint := "Âncoras são geradas dos títulos (## Título → #titulo)."
+	hint := "Anchors come from headings (## My Section → #my-section)."
 	if len(ids) > 0 {
 		if sug := diag.Suggest(frag, ids); sug != "" {
-			hint = fmt.Sprintf("Você quis dizer #%s? %s", sug, hint)
+			hint = fmt.Sprintf("Did you mean #%s? %s", sug, hint)
 		} else {
-			hint += " Âncoras existentes: #" + strings.Join(ids, ", #") + "."
+			hint += " Existing anchors: #" + strings.Join(ids, ", #") + "."
 		}
 	}
-	return resolution{code: diag.CodeLinkAnchor, msg: fmt.Sprintf("âncora #%s não existe em %s", frag, target.Rel), hint: hint}
+	return resolution{code: diag.CodeLinkAnchor, msg: fmt.Sprintf("anchor #%s does not exist in %s", frag, target.Rel), hint: hint}
 }
 
 func (s *Site) pageHint(clean string) string {
@@ -155,9 +155,9 @@ func (s *Site) pageHint(clean string) string {
 		want += ".md"
 	}
 	if sug := diag.Suggest(want, cands); sug != "" {
-		return fmt.Sprintf("Você quis dizer %s? Links relativos partem da pasta da página; use o caminho do arquivo .md.", sug)
+		return fmt.Sprintf("Did you mean %s? Relative links start from the page's folder; use the path of the .md file.", sug)
 	}
-	return "Links relativos partem da pasta da página (./outra.md, ../guia/x.md). Links absolutos usam a rota (/guia/x)."
+	return "Relative links start from the page's folder (./other.md, ../guide/x.md). Absolute links use the route (/guide/x)."
 }
 
 func (s *Site) assetHint(clean string) string {
@@ -166,9 +166,9 @@ func (s *Site) assetHint(clean string) string {
 		cands = append(cands, strings.TrimPrefix(a, "/"))
 	}
 	if sug := diag.Suggest(clean, cands); sug != "" {
-		return fmt.Sprintf("Você quis dizer %s? Caminhos relativos partem da pasta da página.", sug)
+		return fmt.Sprintf("Did you mean %s? Relative paths start from the page's folder.", sug)
 	}
-	return "Coloque o arquivo dentro da pasta do site. Caminhos relativos partem da pasta da página."
+	return "Put the file inside the site folder. Relative paths start from the page's folder."
 }
 
 // checkRefs validates every link and asset reference of a page.
@@ -179,7 +179,7 @@ func (s *Site) checkRefs(p *Page) {
 	for _, ref := range p.analysis.Refs {
 		if ref.Type == markdown.RefDir {
 			if _, ok := s.resolveDir(p, ref.Dest); !ok {
-				addDiag(p, diag.Diagnostic{Line: ref.Line, Column: ref.Col, Code: diag.CodeLinkBroken, Message: ref.Where + ": a pasta " + ref.Dest + " não existe", Hint: "Use um caminho de pasta relativo à página, como ./blog, ou absoluto, como /blog."})
+				addDiag(p, diag.Diagnostic{Line: ref.Line, Column: ref.Col, Code: diag.CodeLinkBroken, Message: ref.Where + ": folder " + ref.Dest + " does not exist", Hint: "Use a folder path relative to the page, such as ./blog, or absolute, such as /blog."})
 			}
 			continue
 		}
@@ -239,12 +239,12 @@ func (s *Site) resolveFonts(dl *diag.List) Fonts {
 			return ""
 		}
 		if !strings.EqualFold(path.Ext(p), ".woff2") {
-			dl.Errorf(0, 0, diag.CodeConfigValue, "Converta a fonte para woff2.", "fonts.%s: só arquivos .woff2 são aceitos", key)
+			dl.Errorf(0, 0, diag.CodeConfigValue, "Convert the font to woff2.", "fonts.%s: only .woff2 files are accepted", key)
 			return ""
 		}
 		r := s.resolve(rootPage, p, true)
 		if !r.ok() || r.isExternal {
-			dl.Errorf(0, 0, diag.CodeAssetMissing, "Coloque o arquivo dentro da pasta do site e use um caminho relativo à raiz.", "fonts.%s: %s", key, r.msg)
+			dl.Errorf(0, 0, diag.CodeAssetMissing, "Put the file inside the site folder and use a path relative to the root.", "fonts.%s: %s", key, r.msg)
 			return ""
 		}
 		return r.href

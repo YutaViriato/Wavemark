@@ -44,35 +44,35 @@ func codes(ds []diag.Diagnostic) string {
 
 func TestRoutesNavAndLinks(t *testing.T) {
 	s := build(t, map[string]string{
-		"wavemark.yaml":      "title: Site\nnav:\n  - label: Guia\n    href: ./guia/index.md\n",
-		"index.md":           "# Home\n\n[Instalar](./guia/instalacao.md#requisitos)\n",
-		"guia/_meta.yaml":    "title: Guia\norder: [instalacao]\n",
-		"guia/index.md":      "# Visão geral\n",
-		"guia/instalacao.md": "# Instalação\n\n## Requisitos\n\n[volta](../index.md) [img](./a.png)\n",
-		"guia/avancado.md":   "---\ntitle: Avançado\n---\n[ruim](./nada.md) [ancora](./instalacao.md#requisito)\n",
-		"guia/a.png":         "png",
+		"wavemark.yaml":     "title: Site\nnav:\n  - label: Guide\n    href: ./guide/index.md\n",
+		"index.md":          "# Home\n\n[Install](./guide/install.md#requirements)\n",
+		"guide/_meta.yaml":  "title: Guide\norder: [install]\n",
+		"guide/index.md":    "# Overview\n",
+		"guide/install.md":  "# Install\n\n## Requirements\n\n[back](../index.md) [img](./a.png)\n",
+		"guide/advanced.md": "---\ntitle: Advanced\n---\n[bad](./nothing.md) [anchor](./install.md#requirement)\n",
+		"guide/a.png":       "png",
 	}, Options{Dev: true})
 
-	if s.ByRoute["/guia/instalacao"] == nil || s.ByRoute["/guia"] == nil || s.ByRoute["/"] == nil {
-		t.Fatalf("rotas: %v", s.ByRoute)
+	if s.ByRoute["/guide/install"] == nil || s.ByRoute["/guide"] == nil || s.ByRoute["/"] == nil {
+		t.Fatalf("routes: %v", s.ByRoute)
 	}
-	if got := s.TopNav[0].Href; got != "/guia" {
+	if got := s.TopNav[0].Href; got != "/guide" {
 		t.Errorf("nav href = %q", got)
 	}
 	sec := s.Nav.Children[0]
-	if sec.Title != "Guia" || sec.Children[0].Page.Route != "/guia" || sec.Children[1].Page.Route != "/guia/instalacao" || sec.Children[2].Page.Route != "/guia/avancado" {
-		t.Errorf("ordem da navegação: %+v", sec.Children)
+	if sec.Title != "Guide" || sec.Children[0].Page.Route != "/guide" || sec.Children[1].Page.Route != "/guide/install" || sec.Children[2].Page.Route != "/guide/advanced" {
+		t.Errorf("navigation order: %+v", sec.Children)
 	}
 	home := s.ByRoute["/"]
-	if !strings.Contains(home.Body, `href="/guia/instalacao#requisitos"`) {
-		t.Errorf("link reescrito: %s", home.Body)
+	if !strings.Contains(home.Body, `href="/guide/install#requirements"`) {
+		t.Errorf("rewritten link: %s", home.Body)
 	}
 	all := codes(s.Diags)
-	if !strings.Contains(all, "link.broken") || !strings.Contains(all, "#requisitos?") {
-		t.Errorf("diagnósticos de link:\n%s", all)
+	if !strings.Contains(all, "link.broken") || !strings.Contains(all, "#requirements?") {
+		t.Errorf("link diagnostics:\n%s", all)
 	}
 	if strings.Count(all, "error") != 2 {
-		t.Errorf("esperava exatamente 2 erros:\n%s", all)
+		t.Errorf("expected exactly 2 errors:\n%s", all)
 	}
 }
 
@@ -80,21 +80,21 @@ func TestPageListAndDates(t *testing.T) {
 	s := build(t, map[string]string{
 		"blog/_meta.yaml": "title: Blog\nsort: date\ndefaults:\n  layout: article\n",
 		"blog/index.md":   "# Blog\n\n<PageList />\n",
-		"blog/velho.md":   "---\ntitle: Velho\ndate: 2025-01-02\n---\nx\n",
-		"blog/novo.md":    "---\ntitle: Novo\ndate: 2026-05-06\nauthor: Ana\n---\nx\n",
-		"blog/meio.md":    "---\ntitle: Meio\ndate: 2025-09-01\nhidden: true\n---\nx\n",
-		"x.md":            "# X\n\n<PageList dir=\"./nao-existe\" />\n",
+		"blog/old.md":     "---\ntitle: Old\ndate: 2025-01-02\n---\nx\n",
+		"blog/new.md":     "---\ntitle: New\ndate: 2026-05-06\nauthor: Ada\n---\nx\n",
+		"blog/middle.md":  "---\ntitle: Middle\ndate: 2025-09-01\nhidden: true\n---\nx\n",
+		"x.md":            "# X\n\n<PageList dir=\"./missing\" />\n",
 	}, Options{Dev: true})
 	body := s.ByRoute["/blog"].Body
-	iNovo, iMeio, iVelho := strings.Index(body, "Novo"), strings.Index(body, "Meio"), strings.Index(body, "Velho")
-	if iNovo < 0 || iMeio < 0 || iVelho < 0 || !(iNovo < iMeio && iMeio < iVelho) {
-		t.Errorf("ordem por data (oculta incluída):\n%s", body)
+	iNew, iMiddle, iOld := strings.Index(body, ">New<"), strings.Index(body, ">Middle<"), strings.Index(body, ">Old<")
+	if iNew < 0 || iMiddle < 0 || iOld < 0 || !(iNew < iMiddle && iMiddle < iOld) {
+		t.Errorf("date order (hidden page included):\n%s", body)
 	}
-	if !strings.Contains(body, `datetime="2026-05-06"`) || !strings.Contains(body, "Ana") {
-		t.Errorf("metadados:\n%s", body)
+	if !strings.Contains(body, `datetime="2026-05-06"`) || !strings.Contains(body, "Ada") {
+		t.Errorf("metadata:\n%s", body)
 	}
-	if s.ByRoute["/blog/novo"].Settings.Layout != "article" {
-		t.Error("cascata de layout")
+	if s.ByRoute["/blog/new"].Settings.Layout != "article" {
+		t.Error("layout cascade")
 	}
 	var nav []*NavNode
 	for _, c := range s.Nav.Children {
@@ -102,54 +102,54 @@ func TestPageListAndDates(t *testing.T) {
 			nav = c.Children
 		}
 	}
-	if len(nav) != 3 || nav[0].Title != "Blog" || nav[1].Title != "Novo" || nav[2].Title != "Velho" {
-		t.Fatalf("sort: date na navegação: %+v", nav)
+	if len(nav) != 3 || nav[0].Title != "Blog" || nav[1].Title != "New" || nav[2].Title != "Old" {
+		t.Fatalf("sort: date in the navigation: %+v", nav)
 	}
-	if !strings.Contains(codes(s.Diags), "nao-existe") {
-		t.Errorf("pasta inexistente não reportada:\n%s", codes(s.Diags))
+	if !strings.Contains(codes(s.Diags), "missing") {
+		t.Errorf("missing folder not reported:\n%s", codes(s.Diags))
 	}
 }
 
 func TestRouteConflict(t *testing.T) {
 	s := build(t, map[string]string{"a/index.md": "# A\n", "a/README.md": "# B\n"}, Options{Dev: true})
 	if !strings.Contains(codes(s.Diags), "route.conflict") {
-		t.Errorf("conflito não reportado:\n%s", codes(s.Diags))
+		t.Errorf("conflict not reported:\n%s", codes(s.Diags))
 	}
 }
 
 func TestLastGoodVersion(t *testing.T) {
 	root := t.TempDir()
-	write(t, root, map[string]string{"index.md": "# Home\n\nversão 1\n"})
+	write(t, root, map[string]string{"index.md": "# Home\n\nversion 1\n"})
 	render := func(s *Site, p *Page) ([]byte, error) { return []byte(p.Body), nil }
 	first, err := Build(Options{Root: root, Render: render})
 	if err != nil || first.ByRoute["/"].HTML == nil {
-		t.Fatalf("primeira versão: %v", err)
+		t.Fatalf("first version: %v", err)
 	}
-	write(t, root, map[string]string{"index.md": "# Home\n\n<Crad>versão 2</Crad>\n", "nova.md": "# Nova\n\n<div>x</div>\n"})
+	write(t, root, map[string]string{"index.md": "# Home\n\n<Crad>version 2</Crad>\n", "new.md": "# New\n\n<div>x</div>\n"})
 	second, err := Build(Options{Root: root, Render: render, Prev: first})
 	if err != nil {
 		t.Fatal(err)
 	}
 	home := second.ByRoute["/"]
-	if !home.Stale || !strings.Contains(string(home.HTML), "versão 1") {
-		t.Errorf("devia manter a versão 1: stale=%v %s", home.Stale, home.HTML)
+	if !home.Stale || !strings.Contains(string(home.HTML), "version 1") {
+		t.Errorf("should keep version 1: stale=%v %s", home.Stale, home.HTML)
 	}
-	if !second.ByRoute["/nova"].Unpublished {
-		t.Error("página nova com erro devia ficar fora do ar")
+	if !second.ByRoute["/new"].Unpublished {
+		t.Error("a new page with errors should not be published")
 	}
 }
 
 func TestSymlinksAndDotfilesAreIgnored(t *testing.T) {
 	root := t.TempDir()
-	write(t, root, map[string]string{"index.md": "# Home\n", ".env": "segredo", ".git/config": "x"})
+	write(t, root, map[string]string{"index.md": "# Home\n", ".env": "secret", ".git/config": "x"})
 	if err := os.Symlink("/etc/hostname", filepath.Join(root, "host.txt")); err != nil {
-		t.Skip("symlinks indisponíveis")
+		t.Skip("symlinks unavailable")
 	}
 	s, err := Build(Options{Root: root, Dev: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for k := range s.Assets {
-		t.Errorf("asset inesperado: %s", k)
+		t.Errorf("unexpected asset: %s", k)
 	}
 }

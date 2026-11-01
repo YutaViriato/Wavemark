@@ -28,47 +28,47 @@ var registry = map[string]*Spec{}
 // for names that have no direct equivalent.
 var knownAliases = map[string]string{
 	"Grid":        "Use <Columns cols={3}>.",
-	"Image":       `Use <Figure src="..." alt="..." /> ou a sintaxe Markdown ![alt](src).`,
-	"Img":         `Use <Figure src="..." alt="..." /> ou a sintaxe Markdown ![alt](src).`,
+	"Image":       `Use <Figure src="..." alt="..." /> or Markdown image syntax ![alt](src).`,
+	"Img":         `Use <Figure src="..." alt="..." /> or Markdown image syntax ![alt](src).`,
 	"Frame":       `Use <Figure src="..." alt="..." caption="..." />.`,
 	"Caution":     "Use <Warning>.",
 	"Important":   "Use <Warning>.",
 	"Admonition":  `Use <Callout type="note">.`,
 	"Expandable":  `Use <Accordion title="...">.`,
 	"Details":     `Use <Accordion title="...">.`,
-	"TabItem":     `Use <Tab title="..."> dentro de <Tabs>.`,
-	"CodeBlock":   "Use um bloco de código cercado (```). Para abas de código, <CodeGroup>.",
-	"Link":        "Use a sintaxe Markdown [texto](destino) ou <Button>.",
-	"Blockquote":  `Use '> texto' ou <Quote author="...">.`,
+	"TabItem":     `Use <Tab title="..."> inside <Tabs>.`,
+	"CodeBlock":   "Use a fenced code block (```). For tabbed code, <CodeGroup>.",
+	"Link":        "Use Markdown link syntax [text](destination) or <Button>.",
+	"Blockquote":  `Use '> text' or <Quote author="...">.`,
 	"Testimonial": `Use <Quote author="..." role="...">.`,
-	"Pricing":     "Use uma tabela Markdown ou <Columns> com <Card>.",
-	"Banner":      `Use <Section tone="oat"> no layout landing ou <Callout> nas páginas docs.`,
-	"Kbd":         "Use código inline: `Ctrl+K`.",
-	"Mermaid":     "Diagramas ainda não são renderizados. Use uma imagem SVG com <Figure>.",
-	"Divider":     "Use uma linha com --- para separar seções.",
-	"Spacer":      "O espaçamento é automático; remova o espaçador.",
+	"Pricing":     "Use a Markdown table, or <Columns> with <Card>.",
+	"Banner":      `Use <Section tone="oat"> in the landing layout, or <Callout> on docs pages.`,
+	"Kbd":         "Use inline code: `Ctrl+K`.",
+	"Mermaid":     "Use <Flow> for step diagrams, or an SVG image with <Figure>.",
+	"Divider":     "Use a line with --- to separate sections.",
+	"Spacer":      "Spacing is automatic; remove the spacer.",
 }
 
 // attrAliases explains attributes other systems use, keyed "Component.attr".
 var attrAliases = map[string]string{
-	"Hero.subtitle":         "O subtítulo é o conteúdo entre <Hero> e </Hero>.",
-	"Hero.description":      "O subtítulo é o conteúdo entre <Hero> e </Hero>.",
-	"Hero.tagline":          "Use eyebrow para o texto pequeno acima do título; o subtítulo é o conteúdo.",
+	"Hero.subtitle":         "The subtitle is the content between <Hero> and </Hero>.",
+	"Hero.description":      "The subtitle is the content between <Hero> and </Hero>.",
+	"Hero.tagline":          "Use eyebrow for the small text above the title; the subtitle is the content.",
 	"Hero.img":              "Use image.",
 	"Hero.src":              "Use image.",
-	"Card.description":      "O texto do cartão é o conteúdo entre <Card> e </Card>.",
-	"Card.image":            `Use icon="nome" para um ícone desenhado; imagens vão no conteúdo com ![alt](src).`,
-	"Card.img":              `Use icon="nome" para um ícone desenhado; imagens vão no conteúdo com ![alt](src).`,
+	"Card.description":      "The card text is the content between <Card> and </Card>.",
+	"Card.image":            `Use icon="name" for a hand-drawn icon; images go in the content as ![alt](src).`,
+	"Card.img":              `Use icon="name" for a hand-drawn icon; images go in the content as ![alt](src).`,
 	"Card.link":             "Use href.",
 	"Card.url":              "Use href.",
-	"Card.color":            "Cartões seguem o tema; não há cor por cartão.",
-	"Card.horizontal":       "Não há variação horizontal.",
-	"Button.text":           "Use label, ou escreva o texto entre as tags.",
-	"Button.title":          "Use label, ou escreva o texto entre as tags.",
+	"Card.color":            "Cards follow the theme; there is no per-card color.",
+	"Card.horizontal":       "There is no horizontal variant.",
+	"Button.text":           "Use label, or write the text between the tags.",
+	"Button.title":          "Use label, or write the text between the tags.",
 	"Button.link":           "Use href.",
 	"Button.url":            "Use href.",
-	"Button.size":           "O tamanho segue o layout (maior em landing).",
-	"Button.icon":           "Botões não têm ícone.",
+	"Button.size":           "The size follows the layout (larger on landing pages).",
+	"Button.icon":           "Buttons have no icon.",
 	"Figure.title":          "Use caption.",
 	"Figure.image":          "Use src.",
 	"Tab.label":             "Use title.",
@@ -76,10 +76,10 @@ var attrAliases = map[string]string{
 	"Step.label":            "Use title.",
 	"Accordion.label":       "Use title.",
 	"Accordion.defaultOpen": "Use open.",
-	"Callout.icon":          "O ícone vem do type.",
-	"Quote.cite":            "Use author e role.",
+	"Callout.icon":          "The icon comes from type.",
+	"Quote.cite":            "Use author and role.",
 	"Quote.name":            "Use author.",
-	"Columns.gap":           "O espaçamento é automático.",
+	"Columns.gap":           "Spacing is automatic.",
 }
 
 // valueAliases explains enum values from other systems, keyed
@@ -87,7 +87,7 @@ var attrAliases = map[string]string{
 var valueAliases = map[string]string{
 	"Button.variant=outline": `Use variant="secondary".`,
 	"Button.variant=ghost":   `Use variant="secondary".`,
-	"Button.variant=link":    "Use um link Markdown [texto](destino).",
+	"Button.variant=link":    "Use a Markdown link [text](destination).",
 	"Button.variant=default": `Use variant="primary".`,
 	"Callout.type=error":     `Use type="danger".`,
 	"Callout.type=caution":   `Use type="warning".`,
@@ -156,55 +156,55 @@ func attr(w util.BufWriter, name, value string) {
 func init() {
 	callout := &Spec{
 		Name:    "Callout",
-		Summary: "Bloco de destaque para notas, dicas e avisos.",
+		Summary: "Highlighted block for notes, tips and warnings.",
 		Attrs: []AttrSpec{
-			{Name: "type", Type: TEnum, Enum: calloutTypes, Default: "note", Doc: "Tom do destaque."},
-			{Name: "title", Type: TString, Doc: "Título em negrito no topo do bloco."},
+			{Name: "type", Type: TEnum, Enum: calloutTypes, Default: "note", Doc: "Tone of the callout."},
+			{Name: "title", Type: TString, Doc: "Bold title at the top of the block."},
 		},
-		Example: "<Callout type=\"warning\" title=\"Antes de começar\">\nFaça backup do banco.\n</Callout>",
+		Example: "<Callout type=\"warning\" title=\"Before you start\">\nBack up the database.\n</Callout>",
 		Render:  renderCallout,
 	}
 	add(callout)
 	for _, alias := range []struct{ name, t string }{{"Note", "note"}, {"Tip", "tip"}, {"Info", "info"}, {"Success", "success"}, {"Check", "success"}, {"Warning", "warning"}, {"Danger", "danger"}} {
 		add(&Spec{
 			Name:    alias.name,
-			Summary: "Atalho para <Callout type=\"" + alias.t + "\">.",
-			Attrs:   []AttrSpec{{Name: "title", Type: TString, Doc: "Título em negrito no topo do bloco."}},
+			Summary: "Shorthand for <Callout type=\"" + alias.t + "\">.",
+			Attrs:   []AttrSpec{{Name: "title", Type: TString, Doc: "Bold title at the top of the block."}},
 			Preset:  map[string]any{"type": alias.t},
 			AliasOf: "Callout",
-			Example: "<" + alias.name + ">\nTexto em **Markdown**.\n</" + alias.name + ">",
+			Example: "<" + alias.name + ">\nText in **Markdown**.\n</" + alias.name + ">",
 			Render:  renderCallout,
 		})
 	}
 
 	add(&Spec{
 		Name:    "Card",
-		Summary: "Cartão com ícone opcional, título e texto. Com href, o cartão inteiro vira link.",
+		Summary: "Card with an optional icon, a title and text. With href, the whole card is a link.",
 		Attrs: []AttrSpec{
-			{Name: "title", Type: TString, Required: true, Doc: "Título do cartão."},
-			{Name: "href", Type: TURL, Doc: "Destino do link: rota, arquivo .md relativo ou URL https."},
-			{Name: "icon", Type: TIcon, Doc: "Ícone desenhado à mão acima do título (veja a lista de ícones)."},
-			{Name: "cta", Type: TString, Doc: "Texto de chamada no rodapé do cartão (ex.: \"Ler guia\"). Exige href."},
+			{Name: "title", Type: TString, Required: true, Doc: "Card title."},
+			{Name: "href", Type: TURL, Doc: "Link destination: a route, a relative .md file, or an https/mailto URL."},
+			{Name: "icon", Type: TIcon, Doc: "Hand-drawn icon above the title (see the icon list)."},
+			{Name: "cta", Type: TString, Doc: "Call-to-action text at the bottom of the card (e.g. \"Read the guide\"). Requires href."},
 		},
-		Example: "<Card title=\"Instalação\" icon=\"rocket\" href=\"./instalacao.md\">\nColoque o binário no PATH.\n</Card>",
+		Example: "<Card title=\"Installation\" icon=\"rocket\" href=\"./installation.md\">\nPut the binary on your PATH.\n</Card>",
 		Render:  renderCard,
 	})
 
 	columns := &Spec{
 		Name:    "Columns",
-		Summary: "Grade responsiva. Em telas estreitas vira uma coluna.",
+		Summary: "Responsive grid. It becomes a single column on narrow screens.",
 		Attrs: []AttrSpec{
-			{Name: "cols", Type: TInt, Default: 2, Min: 1, Max: 4, Doc: "Número de colunas (1 a 4)."},
+			{Name: "cols", Type: TInt, Default: 2, Min: 1, Max: 4, Doc: "Number of columns (1 to 4)."},
 		},
 		Example: "<Columns cols={2}>\n<Card title=\"A\">...</Card>\n<Card title=\"B\">...</Card>\n</Columns>",
 		Render:  renderColumns,
 	}
 	add(columns)
-	add(&Spec{Name: "CardGroup", Summary: "Atalho para <Columns> (nome usado pelo Mintlify).", Attrs: columns.Attrs, AliasOf: "Columns", Example: "<CardGroup cols={2}>\n<Card title=\"A\">...</Card>\n</CardGroup>", Render: renderColumns})
+	add(&Spec{Name: "CardGroup", Summary: "Shorthand for <Columns> (the name Mintlify uses).", Attrs: columns.Attrs, AliasOf: "Columns", Example: "<CardGroup cols={2}>\n<Card title=\"A\">...</Card>\n</CardGroup>", Render: renderColumns})
 
 	add(&Spec{
 		Name:     "Tabs",
-		Summary:  "Conteúdo alternativo em abas.",
+		Summary:  "Alternative content in tabs.",
 		Children: ChildOnly,
 		Allowed:  []string{"Tab"},
 		Example:  "<Tabs>\n<Tab title=\"macOS\">\n...\n</Tab>\n<Tab title=\"Linux\">\n...\n</Tab>\n</Tabs>",
@@ -212,16 +212,16 @@ func init() {
 	})
 	add(&Spec{
 		Name:    "Tab",
-		Summary: "Uma aba de <Tabs>.",
-		Attrs:   []AttrSpec{{Name: "title", Type: TString, Required: true, Doc: "Rótulo da aba."}},
+		Summary: "One tab of <Tabs>.",
+		Attrs:   []AttrSpec{{Name: "title", Type: TString, Required: true, Doc: "Tab label."}},
 		Parent:  "Tabs",
-		Example: "<Tab title=\"Linux\">\nConteúdo em Markdown.\n</Tab>",
+		Example: "<Tab title=\"Linux\">\nContent in Markdown.\n</Tab>",
 		Render:  renderTab,
 	})
 
 	add(&Spec{
 		Name:     "CodeGroup",
-		Summary:  "Vários blocos de código em abas. O rótulo vem de title=\"...\" na cerca ou da linguagem.",
+		Summary:  "Several code blocks in tabs. Each label comes from title=\"...\" on the fence, or from the language.",
 		Children: ChildOnly,
 		Allowed:  []string{ChildCode},
 		Example:  "<CodeGroup>\n```bash title=\"npm\"\nnpm i x\n```\n```bash title=\"pnpm\"\npnpm add x\n```\n</CodeGroup>",
@@ -230,148 +230,171 @@ func init() {
 
 	add(&Spec{
 		Name:     "Steps",
-		Summary:  "Sequência numerada de passos, com marcadores desenhados à mão.",
+		Summary:  "Numbered sequence of steps, with hand-drawn markers.",
 		Children: ChildOnly,
 		Allowed:  []string{"Step"},
-		Example:  "<Steps>\n<Step title=\"Instale\">\n...\n</Step>\n<Step title=\"Configure\">\n...\n</Step>\n</Steps>",
+		Example:  "<Steps>\n<Step title=\"Install\">\n...\n</Step>\n<Step title=\"Configure\">\n...\n</Step>\n</Steps>",
 		Render:   renderSteps,
 	})
 	add(&Spec{
 		Name:    "Step",
-		Summary: "Um passo de <Steps>.",
-		Attrs:   []AttrSpec{{Name: "title", Type: TString, Required: true, Doc: "Título do passo."}},
+		Summary: "One step of <Steps>.",
+		Attrs:   []AttrSpec{{Name: "title", Type: TString, Required: true, Doc: "Step title."}},
 		Parent:  "Steps",
-		Example: "<Step title=\"Instale\">\nRode o instalador.\n</Step>",
+		Example: "<Step title=\"Install\">\nRun the installer.\n</Step>",
 		Render:  renderStep,
 	})
 
 	add(&Spec{
 		Name:    "Accordion",
-		Summary: "Seção recolhível.",
+		Summary: "Collapsible section.",
 		Attrs: []AttrSpec{
-			{Name: "title", Type: TString, Required: true, Doc: "Texto sempre visível."},
-			{Name: "open", Type: TBool, Default: false, Doc: "Começa aberto."},
+			{Name: "title", Type: TString, Required: true, Doc: "Always-visible text."},
+			{Name: "open", Type: TBool, Default: false, Doc: "Starts open."},
 		},
-		Example: "<Accordion title=\"Por que Go?\">\nBinário único.\n</Accordion>",
+		Example: "<Accordion title=\"Why Go?\">\nA single binary.\n</Accordion>",
 		Render:  renderAccordion,
 	})
 	add(&Spec{
 		Name:     "AccordionGroup",
-		Summary:  "Agrupa vários <Accordion> em um bloco contínuo, como uma lista de perguntas frequentes.",
+		Summary:  "Groups several <Accordion> into one continuous block, like an FAQ.",
 		Children: ChildOnly,
 		Allowed:  []string{"Accordion"},
-		Example:  "<AccordionGroup>\n<Accordion title=\"Pergunta 1\">\nResposta.\n</Accordion>\n<Accordion title=\"Pergunta 2\">\nResposta.\n</Accordion>\n</AccordionGroup>",
+		Example:  "<AccordionGroup>\n<Accordion title=\"Question 1\">\nAnswer.\n</Accordion>\n<Accordion title=\"Question 2\">\nAnswer.\n</Accordion>\n</AccordionGroup>",
 		Render:   renderAccordionGroup,
 	})
 
 	add(&Spec{
 		Name:    "Button",
-		Summary: "Link com aparência de botão. O texto vem de label ou do conteúdo. Botões consecutivos ficam lado a lado.",
+		Summary: "A link that looks like a button. The text comes from label or from the content. Consecutive buttons sit side by side.",
 		Attrs: []AttrSpec{
-			{Name: "href", Type: TURL, Required: true, Doc: "Destino."},
-			{Name: "label", Type: TString, Doc: "Texto do botão (ou escreva o texto entre as tags)."},
-			{Name: "variant", Type: TEnum, Enum: []string{"primary", "secondary"}, Default: "primary", Doc: "Estilo."},
+			{Name: "href", Type: TURL, Required: true, Doc: "Destination."},
+			{Name: "label", Type: TString, Doc: "Button text (or write the text between the tags)."},
+			{Name: "variant", Type: TEnum, Enum: []string{"primary", "secondary"}, Default: "primary", Doc: "Style."},
 		},
-		Example:      "<Button href=\"/guia\" label=\"Começar\" />",
+		Example:      "<Button href=\"/guide\" label=\"Get started\" />",
 		Render:       renderButton,
 		SkipChildren: true,
 	})
 
 	add(&Spec{
 		Name:    "Hero",
-		Summary: "Abertura de página de entrada, com título grande. Só no layout landing. O conteúdo vira o subtítulo e pode ter <Button>.",
+		Summary: "Opening of an entry page, with a large title. Landing layout only. The content becomes the subtitle and can include <Button>.",
 		Attrs: []AttrSpec{
-			{Name: "title", Type: TString, Required: true, Doc: "Título principal (vira o <h1> da página)."},
-			{Name: "eyebrow", Type: TString, Doc: "Texto pequeno acima do título."},
-			{Name: "highlight", Type: TString, Doc: "Trecho do título sublinhado com um traço desenhado à mão. Precisa aparecer exatamente no title."},
-			{Name: "image", Type: TAsset, Doc: "Imagem ao lado do texto (SVG ou PNG). Com image, o hero fica em duas colunas."},
-			{Name: "alt", Type: TString, Doc: "Descrição da imagem. Obrigatório quando há image."},
-			{Name: "align", Type: TEnum, Enum: []string{"center", "left"}, Default: "center", Doc: "Alinhamento do texto (sem image)."},
+			{Name: "title", Type: TString, Required: true, Doc: "Main title (becomes the page <h1>)."},
+			{Name: "eyebrow", Type: TString, Doc: "Small text above the title."},
+			{Name: "highlight", Type: TString, Doc: "Part of the title underlined with a hand-drawn stroke. Must appear exactly in title."},
+			{Name: "image", Type: TAsset, Doc: "Image next to the text (SVG or PNG). With image, the hero has two columns."},
+			{Name: "alt", Type: TString, Doc: "Image description. Required with image."},
+			{Name: "align", Type: TEnum, Enum: []string{"center", "left"}, Default: "center", Doc: "Text alignment (without image)."},
 		},
 		Layouts: []string{"landing"},
-		Example: "<Hero title=\"Docs que se escrevem sozinhas\" highlight=\"sozinhas\" eyebrow=\"Wavemark\">\nMarkdown vira site.\n\n<Button href=\"/guia\" label=\"Começar\" />\n</Hero>",
+		Example: "<Hero title=\"Docs that write themselves\" highlight=\"themselves\" eyebrow=\"Wavemark\">\nMarkdown becomes a site.\n\n<Button href=\"/guide\" label=\"Get started\" />\n</Hero>",
 		Render:  renderHero,
 	})
 
 	add(&Spec{
 		Name:    "Section",
-		Summary: "Faixa de largura total com fundo próprio, para destacar um trecho da landing (chamada final, depoimentos, números).",
+		Summary: "Full-width band with its own background, to set apart part of a landing page (final call to action, testimonials, numbers).",
 		Attrs: []AttrSpec{
-			{Name: "tone", Type: TEnum, Enum: []string{"muted", "oat", "clay", "dark"}, Default: "muted", Doc: "Cor de fundo."},
-			{Name: "align", Type: TEnum, Enum: []string{"left", "center"}, Default: "left", Doc: "Alinhamento do texto."},
+			{Name: "tone", Type: TEnum, Enum: []string{"muted", "oat", "clay", "dark"}, Default: "muted", Doc: "Background color."},
+			{Name: "align", Type: TEnum, Enum: []string{"left", "center"}, Default: "left", Doc: "Text alignment."},
 		},
 		Layouts: []string{"landing"},
-		Example: "<Section tone=\"oat\" align=\"center\">\n## Pronto para começar?\n\n<Button href=\"/guia\" label=\"Ler o guia\" />\n</Section>",
+		Example: "<Section tone=\"oat\" align=\"center\">\n## Ready to start?\n\n<Button href=\"/guide\" label=\"Read the guide\" />\n</Section>",
 		Render:  renderSection,
 	})
 
 	add(&Spec{
 		Name:    "Quote",
-		Summary: "Citação em destaque, com autor. Serve para depoimentos e epígrafes.",
+		Summary: "Pull quote with an author. For testimonials and epigraphs.",
 		Attrs: []AttrSpec{
-			{Name: "author", Type: TString, Doc: "Quem disse."},
-			{Name: "role", Type: TString, Doc: "Cargo, organização ou fonte."},
+			{Name: "author", Type: TString, Doc: "Who said it."},
+			{Name: "role", Type: TString, Doc: "Role, organization or source."},
 		},
-		Example: "<Quote author=\"Ada Lovelace\" role=\"Notas sobre a Máquina Analítica\">\nA máquina não tem pretensão de originar nada.\n</Quote>",
+		Example: "<Quote author=\"Ada Lovelace\" role=\"Notes on the Analytical Engine\">\nThe Analytical Engine has no pretensions whatever to originate anything.\n</Quote>",
 		Render:  renderQuote,
 	})
 
 	add(&Spec{
 		Name:     "Stat",
-		Summary:  "Número em destaque com legenda. Use vários dentro de <Columns>.",
+		Summary:  "A prominent number with a label. Use several inside <Columns>.",
 		Children: ChildNone,
 		Attrs: []AttrSpec{
-			{Name: "value", Type: TString, Required: true, Doc: "O número, como texto (\"27\", \"180 mil\", \"99,9%\")."},
-			{Name: "label", Type: TString, Required: true, Doc: "O que o número mede."},
+			{Name: "value", Type: TString, Required: true, Doc: "The number, as text (\"27\", \"180k\", \"99.9%\")."},
+			{Name: "label", Type: TString, Required: true, Doc: "What the number measures."},
 		},
-		Example: "<Stat value=\"27\" label=\"ensaios publicados\" />",
+		Example: "<Stat value=\"27\" label=\"essays published\" />",
 		Render:  renderStat,
 	})
 
 	add(&Spec{
 		Name:     "PageList",
-		Summary:  "Lista automática das páginas de uma pasta, com data, autor e descrição. Ideal para blogs e índices.",
+		Summary:  "Automatic list of the pages in a folder, with date, author and description. For blogs and indexes.",
 		Children: ChildNone,
 		Attrs: []AttrSpec{
-			{Name: "dir", Type: TDir, Default: "./", Doc: "Pasta a listar, relativa à página (padrão: a pasta da própria página)."},
-			{Name: "sort", Type: TEnum, Enum: []string{"auto", "date", "title", "nav"}, Default: "auto", Doc: "Ordem: date (mais recentes primeiro), title, nav (ordem da navegação) ou auto (date se as páginas tiverem data)."},
-			{Name: "limit", Type: TInt, Default: 0, Min: 0, Max: 500, Doc: "Máximo de itens (0 = todos)."},
-			{Name: "style", Type: TEnum, Enum: []string{"list", "cards"}, Default: "list", Doc: "Lista com linhas ou grade de cartões."},
+			{Name: "dir", Type: TDir, Default: "./", Doc: "Folder to list, relative to the page (default: the page's own folder)."},
+			{Name: "sort", Type: TEnum, Enum: []string{"auto", "date", "title", "nav"}, Default: "auto", Doc: "Order: date (newest first), title, nav (navigation order) or auto (date when the pages have dates)."},
+			{Name: "limit", Type: TInt, Default: 0, Min: 0, Max: 500, Doc: "Maximum number of items (0 = all)."},
+			{Name: "style", Type: TEnum, Enum: []string{"list", "cards"}, Default: "list", Doc: "A list of rows or a grid of cards."},
 		},
 		Example: "<PageList dir=\"./blog\" sort=\"date\" limit={5} />",
 		Render:  renderPageList,
 	})
 
 	add(&Spec{
+		Name:     "Flow",
+		Summary:  "A hand-drawn diagram of steps connected by arrows: pipelines, request flows, processes. Wraps vertically on narrow screens.",
+		Children: ChildOnly,
+		Allowed:  []string{"FlowStep"},
+		Attrs: []AttrSpec{
+			{Name: "caption", Type: TString, Doc: "Caption shown below the diagram."},
+		},
+		Example: "<Flow caption=\"From file to response\">\n<FlowStep title=\"Markdown\" icon=\"folder\">Your files</FlowStep>\n<FlowStep title=\"Parser\" icon=\"code\">Validated</FlowStep>\n<FlowStep title=\"HTTP\" icon=\"globe\">Served</FlowStep>\n</Flow>",
+		Render:  renderFlow,
+	})
+	add(&Spec{
+		Name:    "FlowStep",
+		Summary: "One step of a <Flow>. The content is a short description.",
+		Attrs: []AttrSpec{
+			{Name: "title", Type: TString, Required: true, Doc: "Step name."},
+			{Name: "icon", Type: TIcon, Doc: "Hand-drawn icon shown above the name."},
+		},
+		Parent:  "Flow",
+		Example: "<FlowStep title=\"Parser\" icon=\"code\">goldmark + schemas</FlowStep>",
+		Render:  renderFlowStep,
+	})
+
+	add(&Spec{
 		Name:     "Figure",
-		Summary:  "Imagem com legenda.",
+		Summary:  "Image with a caption.",
 		Children: ChildNone,
 		Attrs: []AttrSpec{
-			{Name: "src", Type: TAsset, Required: true, Doc: "Arquivo de imagem relativo à página, caminho absoluto no site ou URL https."},
-			{Name: "alt", Type: TString, Required: true, Doc: "Descrição da imagem para leitores de tela."},
-			{Name: "caption", Type: TString, Doc: "Legenda exibida abaixo."},
+			{Name: "src", Type: TAsset, Required: true, Doc: "Image file relative to the page, an absolute path in the site, or an https URL."},
+			{Name: "alt", Type: TString, Required: true, Doc: "Image description for screen readers."},
+			{Name: "caption", Type: TString, Doc: "Caption shown below."},
 		},
-		Example: "<Figure src=\"./arquitetura.png\" alt=\"Diagrama da arquitetura\" caption=\"Fluxo de uma requisição\" />",
+		Example: "<Figure src=\"./architecture.png\" alt=\"Architecture diagram\" caption=\"How a request flows\" />",
 		Render:  renderFigure,
 	})
 
 	add(&Spec{
 		Name:         "Badge",
-		Summary:      "Etiqueta curta dentro do texto, de títulos ou de células de tabela (\"Novo\", \"Beta\", \"v2.1\").",
+		Summary:      "Short label inside text, headings or table cells (\"New\", \"Beta\", \"v2.1\").",
 		Inline:       true,
 		Children:     ChildText,
-		Attrs:        []AttrSpec{{Name: "color", Type: TEnum, Enum: badgeColors, Default: "gray", Doc: "Cor."}},
-		Example:      "<Badge color=\"clay\">Novo</Badge>",
+		Attrs:        []AttrSpec{{Name: "color", Type: TEnum, Enum: badgeColors, Default: "gray", Doc: "Color."}},
+		Example:      "<Badge color=\"clay\">New</Badge>",
 		RenderInline: renderBadge,
 	})
 	add(&Spec{
 		Name:     "Icon",
-		Summary:  "Ícone desenhado à mão dentro do texto.",
+		Summary:  "Hand-drawn icon inside text.",
 		Inline:   true,
 		Children: ChildNone,
 		Attrs: []AttrSpec{
-			{Name: "name", Type: TIcon, Required: true, Doc: "Nome do ícone."},
-			{Name: "label", Type: TString, Doc: "Descrição para leitores de tela. Sem label, o ícone é decorativo."},
+			{Name: "name", Type: TIcon, Required: true, Doc: "Icon name."},
+			{Name: "label", Type: TString, Doc: "Description for screen readers. Without label the icon is decorative."},
 		},
 		Example:      "<Icon name=\"sparkles\" />",
 		RenderInline: renderIcon,
@@ -380,15 +403,15 @@ func init() {
 	// Rules that need more than one attribute.
 	registry["Card"].check = func(c *Core, diags *diag.List) {
 		if c.Str("cta") != "" && c.Str("href") == "" {
-			diags.Errorf(c.Line, c.Col, diag.CodeAttrValue, "Adicione href ou remova cta.", "'cta' em <Card> exige 'href'")
+			diags.Errorf(c.Line, c.Col, diag.CodeAttrValue, "Add href or remove cta.", "'cta' on <Card> requires 'href'")
 		}
 	}
 	registry["Hero"].check = func(c *Core, diags *diag.List) {
 		if h := c.Str("highlight"); h != "" && !strings.Contains(c.Str("title"), h) {
-			diags.Errorf(c.Line, c.Col, diag.CodeAttrValue, "Copie o trecho exatamente como está no title.", "highlight %q não aparece no title de <Hero>", h)
+			diags.Errorf(c.Line, c.Col, diag.CodeAttrValue, "Copy the phrase exactly as it appears in title.", "highlight %q does not appear in the title of <Hero>", h)
 		}
 		if c.Str("image") != "" && c.Str("alt") == "" {
-			diags.Errorf(c.Line, c.Col, diag.CodeAttrMissing, `Descreva a imagem: alt="..."`, "<Hero image> exige o atributo 'alt'")
+			diags.Errorf(c.Line, c.Col, diag.CodeAttrMissing, `Describe the image: alt="..."`, "<Hero image> requires the attribute 'alt'")
 		}
 	}
 }
@@ -832,4 +855,32 @@ func renderBadge(w util.BufWriter, n *InlineNode, _ *RenderContext) {
 
 func renderIcon(w util.BufWriter, n *InlineNode, _ *RenderContext) {
 	_, _ = w.WriteString(`<span class="wm-inline-icon">` + sketch.Icon(n.Str("name"), sketch.Options{Label: n.Str("label")}) + "</span>")
+}
+
+func renderFlow(w util.BufWriter, _ []byte, n *Node, entering bool, _ *RenderContext) {
+	if entering {
+		_, _ = w.WriteString(`<figure class="wm-flow"><ol class="wm-flow__steps">` + "\n")
+		return
+	}
+	_, _ = w.WriteString("</ol>")
+	if c := n.Str("caption"); c != "" {
+		_, _ = w.WriteString(`<figcaption class="wm-flow__caption">` + esc(c) + "</figcaption>")
+	}
+	_, _ = w.WriteString("</figure>\n")
+}
+
+func renderFlowStep(w util.BufWriter, _ []byte, n *Node, entering bool, ctx *RenderContext) {
+	if !entering {
+		_, _ = w.WriteString("</div></li>\n")
+		return
+	}
+	_, _ = w.WriteString(`<li class="wm-flow__step">`)
+	if n.PreviousSibling() != nil {
+		_, _ = w.WriteString(`<span class="wm-flow__arrow" aria-hidden="true">` + sketch.Arrow(sketch.Seed(n.Str("title")), sketch.Options{}) + "</span>")
+	}
+	_, _ = w.WriteString(`<div class="wm-flow__box">`)
+	if icon := n.Str("icon"); icon != "" {
+		_, _ = w.WriteString(`<span class="wm-flow__icon">` + sketch.Icon(icon, sketch.Options{Size: iconSize(ctx, 32, 40)}) + "</span>")
+	}
+	_, _ = w.WriteString(`<p class="wm-flow__title">` + esc(n.Str("title")) + `</p><div class="wm-flow__body">` + "\n")
 }

@@ -34,9 +34,9 @@ var Layouts = []string{"docs", "landing", "article"}
 // Defaults holds the page settings that cascade from site to folder to page.
 // Pointers distinguish "not set" from the zero value.
 type Defaults struct {
-	Layout *string `yaml:"layout" doc:"Layout da página: docs (padrão; navegação lateral), article (leitura longa, como os artigos do anthropic.com) ou landing (página de entrada)."`
-	TOC    *bool   `yaml:"toc" doc:"Mostra o sumário (TOC) à direita no layout docs. Padrão: true."`
-	Hidden *bool   `yaml:"hidden" doc:"Esconde a página (ou a pasta inteira, se usado em defaults) da navegação. A página continua acessível pela URL."`
+	Layout *string `yaml:"layout" doc:"Page layout: docs (default; sidebar navigation), article (long-form reading, like anthropic.com articles) or landing (entry page)."`
+	TOC    *bool   `yaml:"toc" doc:"Show the table of contents on the right in the docs layout. Default: true."`
+	Hidden *bool   `yaml:"hidden" doc:"Hide the page (or the whole folder, when used in defaults) from the navigation. The page stays reachable by URL and is still listed by <PageList>."`
 }
 
 // Merge returns d overridden by every field set in over.
@@ -55,27 +55,27 @@ func (d Defaults) Merge(over Defaults) Defaults {
 
 // Frontmatter is the YAML block at the top of a page.
 type Frontmatter struct {
-	Title       *string `yaml:"title" doc:"Título da página. Se omitido, o primeiro '# H1' do corpo vira o título."`
-	Description *string `yaml:"description" doc:"Resumo exibido abaixo do título e usado na meta description e no llms.txt."`
-	Order       *int    `yaml:"order" doc:"Posição na navegação dentro da pasta (menor vem primeiro). O 'order' do _meta.yaml tem precedência."`
-	Date        *string `yaml:"date" doc:"Data de publicação no formato AAAA-MM-DD. Aparece no cabeçalho e permite 'sort: date' no _meta.yaml."`
-	Author      *string `yaml:"author" doc:"Autor ou autores, como texto (ex.: \"Ana Lima e Rui Costa\")."`
-	Icon        *string `yaml:"icon" doc:"Ícone desenhado à mão da página, usado por <PageList style=\"cards\">."`
+	Title       *string `yaml:"title" doc:"Page title. When omitted, the first '# H1' of the body becomes the title."`
+	Description *string `yaml:"description" doc:"Summary shown below the title and used in the meta description and llms.txt."`
+	Order       *int    `yaml:"order" doc:"Position in the navigation within the folder (lower comes first). The 'order' list in _meta.yaml takes precedence."`
+	Date        *string `yaml:"date" doc:"Publication date as YYYY-MM-DD. Shown in the page header and used by 'sort: date' in _meta.yaml."`
+	Author      *string `yaml:"author" doc:"Author or authors, as text (e.g. \"Ada Lovelace and Alan Turing\")."`
+	Icon        *string `yaml:"icon" doc:"Hand-drawn icon of the page, used by <PageList style=\"cards\">."`
 	Defaults    `yaml:",inline"`
 }
 
 // Folder is the content of a _meta.yaml file.
 type Folder struct {
-	Title    string   `yaml:"title" doc:"Nome da seção na navegação. Padrão: nome da pasta."`
-	Order    []string `yaml:"order" doc:"Ordem explícita dos itens da pasta: nomes de arquivo sem .md ou nomes de subpasta. Itens não listados vêm depois."`
-	Sort     string   `yaml:"sort" doc:"Ordem dos itens não listados em 'order': title (padrão) ou date (mais recentes primeiro, pela chave 'date' das páginas)."`
-	Defaults Defaults `yaml:"defaults" doc:"Configurações herdadas por todas as páginas da pasta e das subpastas."`
+	Title    string   `yaml:"title" doc:"Section name in the navigation. Default: the folder name."`
+	Order    []string `yaml:"order" doc:"Explicit order of the folder items: file names without .md or subfolder names. Items not listed come after."`
+	Sort     string   `yaml:"sort" doc:"Order of the items not listed in 'order': title (default) or date (newest first, by each page's 'date')"`
+	Defaults Defaults `yaml:"defaults" doc:"Settings inherited by every page in the folder and its subfolders."`
 }
 
 // Logo configures the brand mark in the header.
 type Logo struct {
-	Text string `yaml:"text" doc:"Texto do logo (padrão: title do site)."`
-	Src  string `yaml:"src" doc:"Imagem do logo, relativa à raiz do site (SVG ou PNG)."`
+	Text string `yaml:"text" doc:"Logo text (default: the site title)."`
+	Src  string `yaml:"src" doc:"Logo image, relative to the site root (SVG or PNG)."`
 }
 
 // UnmarshalYAML accepts `logo: ./img/logo.svg` as a shorthand for
@@ -108,34 +108,34 @@ func (l *Logo) UnmarshalYAML(n *yaml.Node) error {
 
 // NavLink is an entry of the top navigation.
 type NavLink struct {
-	Label string `yaml:"label" doc:"Texto do link."`
-	Href  string `yaml:"href" doc:"Destino: rota (/guia), arquivo .md relativo à raiz ou URL https."`
+	Label string `yaml:"label" doc:"Link text."`
+	Href  string `yaml:"href" doc:"Destination: a route (/guide), a .md file relative to the root, or an https URL."`
 }
 
 // Footer configures the site footer.
 type Footer struct {
-	Text  string    `yaml:"text" doc:"Texto do rodapé, por exemplo o copyright."`
-	Links []NavLink `yaml:"links" doc:"Links do rodapé, com 'label' e 'href'."`
+	Text  string    `yaml:"text" doc:"Footer text, for example the copyright line."`
+	Links []NavLink `yaml:"links" doc:"Footer links, each with 'label' and 'href'."`
 }
 
 // Fonts lets a site use font files it is licensed for.
 type Fonts struct {
-	Sans  string `yaml:"sans" doc:"Arquivo woff2 (relativo à raiz) para textos sans-serif."`
-	Serif string `yaml:"serif" doc:"Arquivo woff2 (relativo à raiz) para títulos serifados."`
-	Mono  string `yaml:"mono" doc:"Arquivo woff2 (relativo à raiz) para código."`
+	Sans  string `yaml:"sans" doc:"woff2 file (relative to the root) for sans-serif text."`
+	Serif string `yaml:"serif" doc:"woff2 file (relative to the root) for serif headings."`
+	Mono  string `yaml:"mono" doc:"woff2 file (relative to the root) for code."`
 }
 
 // Site is the content of wavemark.yaml.
 type Site struct {
-	Title       string    `yaml:"title" doc:"Nome do site, usado no header e no <title>."`
-	Description string    `yaml:"description" doc:"Descrição do site para meta tags e llms.txt."`
-	Lang        string    `yaml:"lang" doc:"Idioma do conteúdo (atributo lang do HTML). Padrão: en."`
-	BaseURL     string    `yaml:"baseURL" doc:"URL pública do site (https://...), usada para links absolutos no llms.txt."`
-	Logo        Logo      `yaml:"logo" doc:"Logo do header. Mapa com 'text' (texto ao lado do logo; padrão: title) e 'src' (imagem relativa à raiz), ou só o caminho da imagem: logo: ./img/logo.svg."`
-	Nav         []NavLink `yaml:"nav" doc:"Links da navegação superior. Cada item tem 'label' e 'href'."`
-	Footer      Footer    `yaml:"footer" doc:"Rodapé: 'text' (texto simples, sem Markdown) e 'links' (lista de itens com 'label' e 'href')."`
-	Fonts       Fonts     `yaml:"fonts" doc:"Fontes próprias: 'sans', 'serif' e 'mono', cada uma um arquivo .woff2 relativo à raiz."`
-	Defaults    Defaults  `yaml:"defaults" doc:"Configurações herdadas por todas as páginas."`
+	Title       string    `yaml:"title" doc:"Site name, used in the header and in <title>."`
+	Description string    `yaml:"description" doc:"Site description for meta tags and llms.txt."`
+	Lang        string    `yaml:"lang" doc:"Content language (the HTML lang attribute). Interface strings follow it (en, pt). Default: en."`
+	BaseURL     string    `yaml:"baseURL" doc:"Public URL of the site (https://...), used for absolute links in llms.txt."`
+	Logo        Logo      `yaml:"logo" doc:"Header logo. A map with 'text' (shown next to the logo; default: title) and 'src' (image relative to the root), or just the image path: logo: ./img/logo.svg."`
+	Nav         []NavLink `yaml:"nav" doc:"Top navigation links. Each item has 'label' and 'href'."`
+	Footer      Footer    `yaml:"footer" doc:"Footer: 'text' (plain text, no Markdown) and 'links' (a list of items with 'label' and 'href')."`
+	Fonts       Fonts     `yaml:"fonts" doc:"Your own fonts: 'sans', 'serif' and 'mono', each a .woff2 file relative to the root."`
+	Defaults    Defaults  `yaml:"defaults" doc:"Settings inherited by every page."`
 }
 
 // Settings are the effective settings of a page after the cascade.
@@ -194,7 +194,7 @@ func ParseDate(v string) (time.Time, error) {
 			return t, nil
 		}
 	}
-	return time.Time{}, fmt.Errorf("data inválida %q", v)
+	return time.Time{}, fmt.Errorf("invalid date %q", v)
 }
 
 // LoadSite parses wavemark.yaml. A missing file yields an empty config.
@@ -220,14 +220,14 @@ func LoadSite(data []byte, diags *diag.List) Site {
 			misspelled = misspelled || unknownAt[l]
 		}
 		if strings.TrimSpace(n.Label) == "" && !misspelled {
-			diags.Errorf(line, 0, diag.CodeConfigValue, "", "nav[%d]: 'label' é obrigatório", i)
+			diags.Errorf(line, 0, diag.CodeConfigValue, "", "nav[%d]: 'label' is required", i)
 		}
 		if strings.TrimSpace(n.Href) == "" && !misspelled {
-			diags.Errorf(line, 0, diag.CodeConfigValue, "", "nav[%d]: 'href' é obrigatório", i)
+			diags.Errorf(line, 0, diag.CodeConfigValue, "", "nav[%d]: 'href' is required", i)
 		}
 	}
 	if s.BaseURL != "" && !strings.HasPrefix(s.BaseURL, "https://") && !strings.HasPrefix(s.BaseURL, "http://") {
-		diags.Errorf(keyLine(root, 0, "baseURL"), 0, diag.CodeConfigValue, "Exemplo: baseURL: https://docs.exemplo.com", "baseURL precisa ser uma URL http(s) absoluta")
+		diags.Errorf(keyLine(root, 0, "baseURL"), 0, diag.CodeConfigValue, "Example: baseURL: https://docs.example.com", "baseURL must be an absolute http(s) URL")
 	}
 	s.BaseURL = strings.TrimRight(s.BaseURL, "/")
 	if s.Lang == "" {
@@ -242,7 +242,7 @@ func LoadFolder(data []byte, diags *diag.List) Folder {
 	root := decodeStrict(data, 0, &f, diags)
 	validateDefaults(root, []string{"defaults"}, f.Defaults, 0, diags)
 	if f.Sort != "" && f.Sort != "title" && f.Sort != "date" {
-		diags.Errorf(keyLine(root, 0, "sort"), 0, diag.CodeConfigValue, "Valores aceitos: title, date.", "sort desconhecido %q", f.Sort)
+		diags.Errorf(keyLine(root, 0, "sort"), 0, diag.CodeConfigValue, "Accepted values: title, date.", "unknown sort %q", f.Sort)
 	}
 	return f
 }
@@ -255,11 +255,11 @@ func LoadFrontmatter(data []byte, lineOffset int, diags *diag.List) Frontmatter 
 	validateDefaults(root, nil, fm.Defaults, lineOffset, diags)
 	if fm.Date != nil {
 		if _, err := ParseDate(*fm.Date); err != nil {
-			diags.Errorf(keyLine(root, lineOffset, "date"), 0, diag.CodeDate, "Use o formato AAAA-MM-DD, por exemplo date: 2026-03-14.", "data inválida %q", *fm.Date)
+			diags.Errorf(keyLine(root, lineOffset, "date"), 0, diag.CodeDate, "Use YYYY-MM-DD, for example date: 2026-03-14.", "invalid date %q", *fm.Date)
 		}
 	}
 	if fm.Title != nil && strings.TrimSpace(*fm.Title) == "" {
-		diags.Errorf(keyLine(root, lineOffset, "title"), 0, diag.CodeFrontmatter, "Remova a chave ou preencha o título.", "'title' está vazio")
+		diags.Errorf(keyLine(root, lineOffset, "title"), 0, diag.CodeFrontmatter, "Remove the key or fill in the title.", "'title' is empty")
 	}
 	return fm
 }
@@ -288,7 +288,7 @@ func SplitFrontmatter(src []byte, diags *diag.List) (fm []byte, body []byte, yam
 		}
 		cur = after
 	}
-	diags.Errorf(1, 1, diag.CodeFrontmatter, "Feche o frontmatter com uma linha contendo apenas '---'.", "frontmatter aberto com '---' e nunca fechado")
+	diags.Errorf(1, 1, diag.CodeFrontmatter, "Close the frontmatter with a line containing only '---'.", "frontmatter opened with '---' and never closed")
 	return nil, src, 0, 0
 }
 
@@ -314,7 +314,7 @@ func decodeStrict(data []byte, lineOffset int, v any, diags *diag.List) *yaml.No
 			line, _ = strconv.Atoi(m[1])
 			line += lineOffset
 		}
-		diags.Errorf(line, 0, diag.CodeConfigInvalid, "Verifique indentação, dois-pontos e aspas.", "YAML inválido: %s", msg)
+		diags.Errorf(line, 0, diag.CodeConfigInvalid, "Check indentation, colons and quotes.", "invalid YAML: %s", msg)
 		return &root
 	}
 	dec := yaml.NewDecoder(bytes.NewReader(data))
@@ -325,7 +325,7 @@ func decodeStrict(data []byte, lineOffset int, v any, diags *diag.List) *yaml.No
 	}
 	var te *yaml.TypeError
 	if !errors.As(err, &te) {
-		diags.Errorf(0, 0, diag.CodeConfigInvalid, "", "YAML inválido: %v", err)
+		diags.Errorf(0, 0, diag.CodeConfigInvalid, "", "invalid YAML: %v", err)
 		return &root
 	}
 	for _, e := range te.Errors {
@@ -338,16 +338,16 @@ func decodeStrict(data []byte, lineOffset int, v any, diags *diag.List) *yaml.No
 		}
 		if m := unknownField.FindStringSubmatch(msg); m != nil {
 			known := knownKeys(v, m[2])
-			hint := "Chaves válidas: " + strings.Join(known, ", ") + "."
+			hint := "Valid keys: " + strings.Join(known, ", ") + "."
 			if alt, ok := synonyms[m[1]]; ok && contains(known, alt.key) {
 				hint = alt.hint + " " + hint
 			} else if s := diag.Suggest(m[1], known); s != "" {
-				hint = fmt.Sprintf("Você quis dizer '%s'? %s", s, hint)
+				hint = fmt.Sprintf("Did you mean '%s'? %s", s, hint)
 			}
-			diags.Errorf(line, 0, diag.CodeConfigUnknownKey, hint, "chave desconhecida '%s'", m[1])
+			diags.Errorf(line, 0, diag.CodeConfigUnknownKey, hint, "unknown key '%s'", m[1])
 			continue
 		}
-		diags.Errorf(line, 0, diag.CodeConfigValue, "", "valor inválido: %s", translateYAML(msg, v))
+		diags.Errorf(line, 0, diag.CodeConfigValue, "", "invalid value: %s", translateYAML(msg, v))
 	}
 	return &root
 }
@@ -356,8 +356,8 @@ func decodeStrict(data []byte, lineOffset int, v any, diags *diag.List) *yaml.No
 // to Wavemark's, so the hint names the right key even when it looks nothing
 // like the typo.
 var synonyms = map[string]struct{ key, hint string }{
-	"title":            {"label", "Itens de nav usam 'label' em vez de 'title'."},
-	"text":             {"label", "Itens de nav usam 'label' em vez de 'text'."},
+	"title":            {"label", "Navigation items use 'label' instead of 'title'."},
+	"text":             {"label", "Navigation items use 'label' instead of 'text'."},
 	"name":             {"label", "Use 'label'."},
 	"link":             {"href", "Use 'href'."},
 	"url":              {"href", "Use 'href'."},
@@ -372,11 +372,11 @@ var synonyms = map[string]struct{ key, hint string }{
 	"summary":          {"description", "Use 'description'."},
 	"excerpt":          {"description", "Use 'description'."},
 	"subtitle":         {"description", "Use 'description'."},
-	"authors":          {"author", "Use 'author' com um texto (\"Ana e Rui\")."},
-	"published":        {"date", "Use 'date: AAAA-MM-DD'."},
-	"pubDate":          {"date", "Use 'date: AAAA-MM-DD'."},
-	"draft":            {"hidden", "Não há rascunhos; 'hidden: true' tira a página da navegação."},
-	"sortBy":           {"sort", "Use 'sort: date' ou 'sort: title'."},
+	"authors":          {"author", "Use 'author' with a text value (\"Ada and Alan\")."},
+	"published":        {"date", "Use 'date: YYYY-MM-DD'."},
+	"pubDate":          {"date", "Use 'date: YYYY-MM-DD'."},
+	"draft":            {"hidden", "There are no drafts; 'hidden: true' removes the page from the navigation."},
+	"sortBy":           {"sort", "Use 'sort: date' or 'sort: title'."},
 }
 
 func contains(ss []string, s string) bool {
@@ -396,30 +396,30 @@ func translateYAML(msg string, v any) string {
 	if m == nil {
 		return msg
 	}
-	got := map[string]string{"str": "um texto", "int": "um número", "bool": "um booleano", "seq": "uma lista", "map": "um mapa", "float": "um número"}[m[1]]
+	got := map[string]string{"str": "text", "int": "a number", "bool": "a boolean", "seq": "a list", "map": "a map", "float": "a number"}[m[1]]
 	if got == "" {
 		got = m[1]
 	}
 	var want string
 	switch t := m[3]; {
 	case t == "string":
-		want = "um texto"
+		want = "text"
 	case t == "int":
-		want = "um número inteiro"
+		want = "an integer"
 	case t == "bool":
-		want = "true ou false"
+		want = "true or false"
 	case t == "[]string":
-		want = "uma lista de textos, como [a, b]"
+		want = "a list of strings, like [a, b]"
 	case strings.HasPrefix(t, "[]"):
-		want = "uma lista"
+		want = "a list"
 	default:
 		if keys := knownKeys(v, t); len(keys) > 0 {
-			want = "um mapa com as chaves " + strings.Join(keys, ", ")
+			want = "a map with the keys " + strings.Join(keys, ", ")
 		} else {
-			want = "outro tipo"
+			want = "another type"
 		}
 	}
-	return fmt.Sprintf("esperava %s, recebeu %s", want, got)
+	return fmt.Sprintf("expected %s, got %s", want, got)
 }
 
 // knownKeys lists the YAML keys of the struct type named typeName reachable
@@ -465,7 +465,7 @@ func yamlKeys(t reflect.Type) []string {
 	return keys
 }
 
-// Fields documents the keys of a config struct for `wavemark spec`.
+// Field documents one key of a config struct for `wavemark spec`.
 type Field struct {
 	Key, Type, Doc string
 }
@@ -495,18 +495,18 @@ func typeName(t reflect.Type) string {
 	}
 	switch t.Kind() {
 	case reflect.String:
-		return "texto"
+		return "text"
 	case reflect.Bool:
-		return "booleano"
+		return "boolean"
 	case reflect.Int:
-		return "inteiro"
+		return "integer"
 	case reflect.Slice:
 		if t.Elem().Kind() == reflect.String {
-			return "lista de textos"
+			return "list of strings"
 		}
-		return "lista"
+		return "list"
 	case reflect.Struct:
-		return "mapa"
+		return "map"
 	}
 	return t.String()
 }
@@ -521,11 +521,11 @@ func validateDefaults(root *yaml.Node, path []string, d Defaults, lineOffset int
 		}
 	}
 	line := keyLine(root, lineOffset, append(path, "layout")...)
-	hint := "Valores aceitos: " + strings.Join(Layouts, ", ") + "."
+	hint := "Accepted values: " + strings.Join(Layouts, ", ") + "."
 	if s := diag.Suggest(*d.Layout, Layouts); s != "" {
-		hint = fmt.Sprintf("Você quis dizer '%s'? %s", s, hint)
+		hint = fmt.Sprintf("Did you mean '%s'? %s", s, hint)
 	}
-	diags.Errorf(line, 0, diag.CodeConfigValue, hint, "layout desconhecido '%s'", *d.Layout)
+	diags.Errorf(line, 0, diag.CodeConfigValue, hint, "unknown layout '%s'", *d.Layout)
 }
 
 // keyLine finds the line of a key path in a YAML document (0 if absent).

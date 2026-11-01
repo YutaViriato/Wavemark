@@ -117,7 +117,7 @@ func (s *Site) buildNav(pages []*Page, folders map[string]config.Folder) *NavNod
 		for _, name := range f.Order {
 			n := strings.TrimSuffix(name, ".md")
 			if !known[n] && !(index != nil && n == "index") {
-				s.navDiags = append(s.navDiags, diag.Diagnostic{File: path.Join(dir, config.FolderFile), Severity: diag.Warning, Code: diag.CodeConfigValue, Message: fmt.Sprintf("order: %q não corresponde a nenhuma página ou subpasta visível", name), Hint: "Use o nome do arquivo sem .md ou o nome da subpasta."})
+				s.navDiags = append(s.navDiags, diag.Diagnostic{File: path.Join(dir, config.FolderFile), Severity: diag.Warning, Code: diag.CodeConfigValue, Message: fmt.Sprintf("order: %q does not match any visible page or subfolder", name), Hint: "Use the file name without .md, or the subfolder name."})
 			}
 		}
 		sort.SliceStable(items, func(i, j int) bool {

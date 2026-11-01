@@ -1,6 +1,6 @@
 ---
 title: Blog
-description: Notas sobre como o Wavemark é feito e por quê.
+description: Notes on how Wavemark is made, and why.
 layout: docs
 toc: false
 ---

@@ -1,111 +1,112 @@
 # Wavemark
 
-Wavemark é um runtime que transforma uma pasta de arquivos Markdown em um site. Você aponta o binário para uma pasta e o servidor renderiza as páginas; editar um `.md` muda o site sem etapa de build.
+Wavemark is a runtime that turns a folder of Markdown files into a website. You point the binary at a folder and the server renders the pages; editing a `.md` file changes the site with no build step.
 
-Os autores do conteúdo são principalmente agentes de IA. Isso orienta quase todas as decisões abaixo: gramática estrita, validação com schema, erros acionáveis e uma especificação legível por máquina.
+Content is mostly written by AI agents. That drives almost every decision below: a strict grammar, schema validation, actionable errors and a machine-readable reference.
 
-## Decisões de produto
+**Everything in this repository is in English**: code, messages, docs, the example site and commit messages. The only other-language text is data for sites written in other languages (interface strings in `internal/i18n` and month names in `internal/components/date.go`).
 
-| Tema | Decisão |
+**The Wavemark site itself is made with Wavemark.** Every page in `site/` is Markdown and components; nothing is hand-made HTML, CSS or images. If a page needs something Wavemark cannot express, add it to Wavemark (a component, an icon, a layout) and then use it.
+
+## Product decisions
+
+| Topic | Decision |
 |---|---|
-| Modelo de execução | Runtime de verdade: servidor HTTP lê a pasta, mantém um snapshot em memória e reconstrói quando arquivos mudam (fsnotify). Sem build estático por enquanto. |
-| Público | Documentação e notas longas, com componentes de site (cards, colunas, hero, botões) para páginas de entrada. |
-| Sintaxe de componentes | Tags estilo JSX, declarativas, **sem executar JS**: `<Card title="X" href="/y">`. Nome com inicial maiúscula = componente. Valores de atributo: `"string"`, `'string'`, `{literal JSON}` ou atributo booleano sem valor. Expressões JS são erro. |
-| Regras da gramática | Tags de componente ficam em linhas próprias (abertura, fechamento, autofechada). Exceção: forma de linha única `<Step title="x">texto</Step>`. A tag de abertura pode ocupar várias linhas. O conteúdo entre tags é Markdown e pode ser indentado (o componente remove a indentação). |
-| HTML cru | Proibido. Vira erro no `check` e não é renderizado. Tudo passa por componentes para que o agente não quebre a identidade visual. |
-| Blocos de código indentados | Desligados. Só blocos cercados (```` ``` ````). Isso permite indentar conteúdo dentro de componentes sem gerar código por acidente. |
-| Configuração | Cascata em três níveis: `wavemark.yaml` (raiz, chave `defaults`) → `_meta.yaml` por pasta (chave `defaults`) → frontmatter da página. Mapas mesclam em profundidade, escalares sobrescrevem, listas substituem. Chaves desconhecidas são erro (pega `tittle:`). Chaves de site (`nav`, `title` do site, `logo`) só existem em `wavemark.yaml`. |
-| Título da página | `title` do frontmatter ou, na falta dele, o primeiro `# H1` (que sai do corpo e vai para o layout). H1 no corpo junto com `title` no frontmatter é erro. Mais de um H1 é erro. |
-| Rotas | Derivadas das pastas: `guia/instalacao.md` → `/guia/instalacao`; `index.md` ou `README.md` → rota da pasta. A fonte de cada página também é servida em `<rota>.md`, e o site expõe `/llms.txt`. |
-| Links internos | Links para `.md` relativos são reescritos para a rota e validados no índice global, incluindo âncoras `#id`. Link quebrado é erro. |
-| Página inválida | `wavemark serve` só sobe se o `check` passar. Com o servidor rodando, uma página que fica inválida continua servindo a última versão válida, e o erro vai para o log. `wavemark dev` mostra o erro sobreposto na página e recarrega via SSE. |
-| Layouts | `docs` (padrão: sidebar, conteúdo, sumário à direita, fundo neutro `#fcfcfb` como platform.claude.com/docs), `article` (leitura longa como os artigos de anthropic.com/research: capítulos numerados à esquerda, fatos à direita, corpo serifado de 625px) e `landing` (hero, títulos grandes, fundo marfim `#faf9f5` como claude.com). |
-| Componentes | Bloco: `Callout` (+ `Note`, `Tip`, `Info`, `Success`/`Check`, `Warning`, `Danger`), `Card` (com `icon`), `Columns` (+ `CardGroup`), `Tabs`/`Tab`, `CodeGroup`, `Steps`/`Step`, `Accordion`, `AccordionGroup`, `Button`, `Hero` (com `highlight` e `image`), `Section`, `Quote`, `Stat`, `PageList`, `Figure`. Inline: `Badge`, `Icon`. Mermaid, matemática e busca ficam para depois. |
-| Compatibilidade | Nomes que agentes trazem de Mintlify/Docusaurus viram aliases quando o significado é o mesmo (`CardGroup`, `AccordionGroup`, `Check`, `cols="3"`, `open="true"`, `logo: ./x.svg`, conteúdo em `<Button>`). Quando não há equivalente, o diagnóstico explica o que usar (`attrAliases`, `valueAliases`, `knownAliases`, `synonyms` em config). |
-| Desenhado à mão | Ícones são geometria (`internal/sketch`) passada por uma "caneta" determinística: vértices deslocados, arestas levemente curvas, fechamento que passa do ponto e preenchimento oat fora de registro. Nunca usar arte da Anthropic. Todo traço tem `pathLength="1"` para animar. |
-| Movimento | Calmo, como anthropic.com/claude.com: out-quart/out-expo, distâncias pequenas, nada em loop. Hero sobe palavra por palavra com blur; traços se desenham; blocos abaixo da dobra aparecem ao rolar (só o que está fora da tela fica pendente, então nada pisca); abas com indicador deslizante; view transitions entre páginas e na troca de tema. Sem JS ou com `prefers-reduced-motion`, tudo aparece pronto. |
-| JS no cliente | Vanilla, mínimo, embutido no binário: abas, copiar código, troca de tema, revelação ao rolar, live reload no `dev`. O site continua completo sem JS. |
-| Distribuição | Fora do escopo por enquanto. |
+| Execution model | A real runtime: an HTTP server reads the folder, keeps a snapshot in memory and rebuilds when files change (fsnotify). No static build for now. |
+| Audience | Documentation and long-form notes, plus site components (cards, columns, hero, buttons, sections) for entry pages and blogs. |
+| Component syntax | Declarative JSX-style tags, **no JavaScript**: `<Card title="X" href="/y">`. A capitalized name is a component. Attribute values: `"string"`, `'string'`, `{JSON literal}` or a bare attribute for true. JS expressions are errors. |
+| Grammar rules | Block component tags sit on their own line (opening, closing, self-closing). Exception: the one-line form `<Step title="x">text</Step>`. Opening tags may span lines. Content between tags is Markdown and may be indented (the component strips the indentation). Inline components (`<Badge>`, `<Icon />`) live inside text and open and close on the same line. |
+| Raw HTML | Forbidden. `check` reports it and it is not rendered, so agents cannot break the visual identity. |
+| Indented code blocks | Reported as errors (`markdown.indented-code`); only fenced code is allowed. They stay in the parser only so the content after them is kept and checked. |
+| Configuration | Three-level cascade: `wavemark.yaml` (root, `defaults` key) → `_meta.yaml` per folder (`defaults` key) → page frontmatter. Maps merge deeply, scalars override, lists replace. Unknown keys are errors (catches `tittle:`). Site keys (`nav`, site `title`, `logo`, `footer`, `fonts`) only exist in `wavemark.yaml`. |
+| Page title | The frontmatter `title` or, without it, the first `# H1` (which leaves the body and goes to the layout). An H1 in the body plus a frontmatter `title` is an error. More than one H1 is an error. |
+| Routes | From folders: `guide/install.md` → `/guide/install`; `index.md` or `README.md` → the folder route. Each page's source is also served at `<route>.md`, and the site exposes `/llms.txt`. A root `404.md` becomes the not-found page. |
+| Internal links | Relative `.md` links are rewritten to routes and validated against the global index, anchors included. A broken link is an error. |
+| Invalid pages | `wavemark serve` only starts if `check` passes. While running, a page that becomes invalid keeps serving its last valid version and the error goes to the log. `wavemark dev` overlays errors on the page and reloads via SSE; pages also reload when the server restarts (boot id). |
+| Layouts | `docs` (default: sidebar, content, table of contents on the right, neutral `#fcfcfb` background like platform.claude.com/docs), `article` (long-form reading like anthropic.com/research: numbered chapters on the left, facts on the right, 625 px serif body) and `landing` (hero, large titles, ivory `#faf9f5` background like claude.com). |
+| Components | Block: `Callout` (+ `Note`, `Tip`, `Info`, `Success`/`Check`, `Warning`, `Danger`), `Card` (with `icon`), `Columns` (+ `CardGroup`), `Tabs`/`Tab`, `CodeGroup`, `Steps`/`Step`, `Flow`/`FlowStep`, `Accordion`, `AccordionGroup`, `Button`, `Hero` (with `highlight` and `image`), `Section`, `Quote`, `Stat`, `PageList`, `Figure`. Inline: `Badge`, `Icon`. Mermaid, math and search come later. |
+| Compatibility | Names agents bring from Mintlify/Docusaurus become aliases when they mean the same thing (`CardGroup`, `AccordionGroup`, `Check`, `cols="3"`, `open="true"`, `logo: ./x.svg`, content inside `<Button>`). When there is no equivalent, the diagnostic says what to use (`attrAliases`, `valueAliases`, `knownAliases`, config `synonyms`). |
+| Hand-drawn look | Icons and arrows are geometry (`internal/sketch`) traced by a deterministic "pen": nudged corners, slightly bowed edges, a close that overshoots, and an oat fill out of register. Never use Anthropic artwork. Every stroke has `pathLength="1"` so it can animate. |
+| Motion | Calm, like anthropic.com and claude.com: out-quart/out-expo, small distances, nothing loops. The hero rises word by word with blur; strokes draw themselves; blocks below the fold appear on scroll (only offscreen blocks become pending, so nothing flickers); tabs have a sliding indicator; view transitions between pages and on theme change. Without JS or with `prefers-reduced-motion`, everything is simply there. |
+| Client JS | Vanilla and minimal, embedded in the binary: tabs, copy code, theme toggle, scroll reveal, live reload in `dev`. The site is complete without JS. |
+| Distribution | Out of scope for now. |
 
-## Identidade visual
+## Visual identity
 
-A referência são os sites atuais (medidos em novembro de 2026), não as diretrizes públicas antigas (Poppins/Lora). Valores medidos e metodologia ficam em `design/reference.md`.
+The reference is the current sites (measured November 2026), not the older public guidelines (Poppins/Lora). Measured values and method are in `design/reference.md`.
 
-- As fontes Anthropic Sans/Serif/Mono são proprietárias. **Nunca embutir nem fazer hotlink delas.** Usamos alternativas livres (OFL) escolhidas por comparação visual: Hanken Grotesk (sans), Newsreader (serif) e JetBrains Mono. A config permite apontar arquivos de fonte próprios.
-- Não distribuir o logo da Claude nem o wordmark da Anthropic. O logo vem da config do site.
-- Todo valor visual vem de tokens CSS (`--wm-*`). Componentes não usam cores literais.
-- Verificação visual: `tools/visual/` (Playwright) captura as páginas do Wavemark e as de referência no mesmo viewport e compara estilos computados. Comparação por pixel não serve porque as fontes diferem.
+- Anthropic Sans/Serif/Mono are proprietary. **Never embed or hotlink them.** We use open-licensed alternatives chosen by visual comparison: Hanken Grotesk (sans), Newsreader (serif) and JetBrains Mono. The config lets a site point at font files it is licensed for.
+- Do not ship the Claude logo or the Anthropic wordmark. The logo comes from the site config.
+- Every visual value comes from CSS tokens (`--wm-*`). Components never use literal colors.
+- Visual verification: `tools/visual/` (Playwright) captures Wavemark pages and the reference pages at the same viewport and compares computed styles. Pixel diffs do not work because the fonts differ.
 
-## Para agentes que escrevem conteúdo
+## For agents writing content
 
-- `wavemark spec` imprime a referência completa de componentes e frontmatter, gerada dos mesmos schemas que validam. Leia antes de escrever.
-- `wavemark check [dir] --json` devolve diagnósticos com arquivo, linha, coluna, código e sugestão. Rode até ficar limpo.
+- `wavemark spec` prints the full component and frontmatter reference, generated from the same schemas that validate. Read it first.
+- `wavemark check [dir] --json` returns diagnostics with file, line, column, code and hint. Run it until it is clean.
 
-## Arquitetura (Go)
+## Architecture (Go)
 
 ```
 cmd/wavemark/        CLI: serve, dev, check, spec
-internal/diag/       diagnósticos (arquivo, linha, coluna, código, mensagem, dica)
-internal/config/     wavemark.yaml, _meta.yaml, frontmatter, cascata e validação de chaves
-internal/markdown/   goldmark + parsers de componentes (bloco e inline) + renderers (código, títulos, links)
-internal/components/ schemas, aliases de compatibilidade e renderização de cada componente
-internal/sketch/     ícones e traços desenhados à mão, gerados por código
-internal/site/       varredura da pasta, rotas, navegação, índice global, validação de links
+internal/diag/       diagnostics (file, line, column, code, message, hint)
+internal/config/     wavemark.yaml, _meta.yaml, frontmatter, cascade and key validation
+internal/markdown/   goldmark + component parsers (block and inline) + renderers (code, headings, links)
+internal/components/ schemas, compatibility aliases and rendering of each component
+internal/sketch/     hand-drawn icons, arrows and strokes, generated by code
+internal/site/       folder scan, routes, navigation, global index, link validation, llms.txt
 internal/server/     HTTP, snapshot, watcher, last-known-good, live reload
-internal/theme/      templates, CSS, JS e fontes embutidos (embed.FS)
-site/                site de exemplo: a documentação do próprio Wavemark, escrita em Wavemark
-design/              referência visual medida
-tools/visual/        Playwright: compare (estilos vs. referência), shots, interact, motion
-tools/iconsheet/     folha de prova dos ícones (go run ./tools/iconsheet sheet.html)
+internal/theme/      embedded templates, CSS, JS and fonts (embed.FS)
+site/                the example site: Wavemark's own documentation, written in Wavemark
+design/              measured visual reference
+tools/visual/        Playwright: compare (styles vs. reference), shots, interact, motion
+tools/iconsheet/     icon contact sheet (go run ./tools/iconsheet sheet.html)
 ```
 
-Dependências: `github.com/yuin/goldmark`, `github.com/alecthomas/chroma/v2` (realce no servidor, por classes CSS), `github.com/fsnotify/fsnotify`, `gopkg.in/yaml.v3`. Evitar dependências novas sem motivo.
+Dependencies: `github.com/yuin/goldmark`, `github.com/alecthomas/chroma/v2` (server-side highlighting with CSS classes), `github.com/fsnotify/fsnotify`, `gopkg.in/yaml.v3`. Avoid new dependencies without a reason.
 
-## Comandos
+## Commands
 
 ```bash
 go build -o bin/wavemark ./cmd/wavemark
-./bin/wavemark dev site          # servidor de desenvolvimento em :4321
-./bin/wavemark check site --json # validação
-./bin/wavemark spec              # referência para agentes
+./bin/wavemark dev site          # development server on :4321
+./bin/wavemark check site --json # validation
+./bin/wavemark spec              # reference for agents
 go vet ./...
-
 go test ./...
 
-# Verificação no navegador (com o dev rodando em :4321)
+# Browser checks (with dev running on :4321)
 cd tools/visual && npm install && npx playwright install chromium
-node compare.mjs --scheme light   # estilos computados vs. platform.claude.com e claude.com
+node compare.mjs --scheme light   # computed styles vs. platform.claude.com and claude.com
 node compare.mjs --scheme dark
-node interact.mjs                 # abas, copiar, tema, sumário, menu mobile, sem JS, CSP
-node motion.mjs                   # quadros da animação, reduced motion, sem JS, indicador das abas
-node shots.mjs --pages /,/guia/instalacao --scheme light,dark --scroll 0,900   # capturas em tools/visual/shots/
+node interact.mjs                 # tabs, copy, theme, table of contents, mobile menu, no-JS, CSP
+node motion.mjs                   # animation frames, reduced motion, no-JS, tab indicator
+node shots.mjs --pages /,/guide/install --scheme light,dark --scroll 0,900   # screenshots in tools/visual/shots/
 ```
 
-## Teste com agentes às cegas
+## Blind agent tests
 
-O teste mais valioso: um subagente sem contexto recebe só o binário (`help`, `spec`, `check --json`), escreve um site completo e relata os erros da primeira execução do `check`. Copie o binário para `bin/wavemark-agent` antes, para que mudanças em andamento não afetem o teste, e use pastas em `.e2e-agents/` (ignoradas pelo git). Rodada 1: 8 e 71 erros na primeira execução. Rodada 2, depois das correções: 0 erros.
+The most useful test: a subagent with no context gets only the binary (`help`, `spec`, `check --json`), writes a complete site and reports the errors of its first `check` run. Copy the binary to `bin/wavemark-agent` first so work in progress does not affect the test, and use folders in `.e2e-agents/` (ignored by git). Round 1: 8 and 71 errors on the first run. Round 2, after the fixes: 0 errors.
 
-## Estado atual
+## Current state
 
-- Implementado: parsers de componentes (bloco e inline), validação com diagnósticos, cascata de config, datas e autores, rotas, navegação (ordem manual ou por data), links, âncoras e pastas validados, layouts `docs`, `article` e `landing` (claro e escuro), ícones desenhados à mão, movimento, runtime com snapshot atômico, watcher, SSE, última versão válida, `llms.txt`, fonte `.md` de cada página, CSP, testes Go.
-- `compare.mjs`: 53/53 propriedades iguais à referência em claro e escuro (fontes excluídas por serem proprietárias).
-- Desempenho: 601 páginas pesadas reconstroem em ~0,5 s em 2 núcleos. O realce de código é memoizado por hash e a sidebar é renderizada uma vez por snapshot.
-- Próximo pedido dos agentes: `spec`, `help` e diagnósticos em inglês (hoje só português), conforme o `lang` do site ou uma flag.
-- Ainda não existe: busca, Mermaid, matemática, build estático, i18n da interface além de en/pt, tags de posts.
+- Done: block and inline component parsers, validation with diagnostics, config cascade, dates and authors, routes, navigation (manual or by date), validated links, anchors and folders, `docs`, `article` and `landing` layouts (light and dark), hand-drawn icons and flow diagrams, motion, a runtime with an atomic snapshot, watcher, SSE, last valid version, `llms.txt`, Markdown source for each page, Markdown 404 page, CSP, Go tests.
+- `compare.mjs`: 53/53 properties match the reference in light and dark (fonts excluded because they are proprietary).
+- Performance: 601 heavy pages rebuild in ~0.5 s on 2 cores. Highlighting is memoized by hash and the sidebar is rendered once per snapshot.
+- Not yet: search, Mermaid, math, static export, interface strings beyond en/pt, post tags.
 
-## Armadilhas conhecidas
+## Known pitfalls
 
-- O goldmark chama `Continue` de fora para dentro em cada linha. Por isso a tag de fechamento é decidida em `componentParser.owns`, que olha `pc.OpenedBlocks()`. Mexa ali com cuidado e teste aninhamento, cercas de código com `</Tag>` dentro e componentes autofechados.
-- O renderer de tabela do goldmark usa `style=""` por padrão. Mantenha `TableCellAlignAttribute`, porque a CSP bloqueia estilos inline.
-- Não use `style=` em nenhum HTML gerado, pelo mesmo motivo; use classes (`wm-columns--3`).
-- Ao matar servidores em scripts, use `pgrep -f "^./bin/wavemark"`. Com `pkill -f "wavemark dev"`, o padrão casa com o próprio shell.
-- Animações do traço dependem de `pathLength="1"` e `stroke-dasharray: 1 2`. Não use `vector-effect: non-scaling-stroke` nesses paths: ele invalida o `pathLength` e o traço aparece pronto.
-- A revelação ao rolar só marca como `pending` o que está fora da tela no carregamento. Nunca esconda conteúdo com CSS sem `.wm-js` e sem respeitar `prefers-reduced-motion`.
-- Blocos de código indentados existem no parser só para serem reportados (`markdown.indented-code`). Removê-los do parser fazia o goldmark descartar silenciosamente o resto da página.
+- goldmark calls `Continue` outermost to innermost on every line. That is why the closing tag is decided in `componentParser.owns`, which inspects `pc.OpenedBlocks()`. Change it carefully and test nesting, fences containing `</Tag>`, and self-closing components.
+- goldmark's table renderer uses `style=""` by default. Keep `TableCellAlignAttribute`, because the CSP blocks inline styles.
+- Never emit `style=` in generated HTML, for the same reason; use classes (`wm-columns--3`).
+- When killing servers in scripts, use `pgrep -f "^./bin/wavemark"`. With `pkill -f "wavemark dev"` the pattern matches your own shell.
+- Stroke animations depend on `pathLength="1"` and `stroke-dasharray: 1 2`. Do not use `vector-effect: non-scaling-stroke` on those paths: it breaks `pathLength` and the stroke shows up already drawn.
+- Scroll reveal only marks blocks that are offscreen at load as `pending`. Never hide content with CSS without `.wm-js` and without respecting `prefers-reduced-motion`.
 
-## Convenções
+## Conventions
 
-- Go idiomático, `gofmt`, erros com contexto (`fmt.Errorf("...: %w", err)`).
-- Saída HTML sempre escapada; atributos de URL validados (só http(s), mailto, relativo, `/` e `#`).
-- Arquivos servidos só a partir do índice da varredura, nunca por junção de caminho da requisição. Symlinks não são seguidos.
-- Documentação e mensagens para o usuário em português; identificadores e código em inglês.
+- Idiomatic Go, `gofmt`, errors with context (`fmt.Errorf("...: %w", err)`).
+- HTML output is always escaped; URL attributes are validated (only http(s), mailto, tel, relative, `/` and `#`).
+- Files are served only from the scan index, never by joining the request path. Symlinks are not followed.
+- English everywhere: identifiers, comments, messages, docs, site content and commits.

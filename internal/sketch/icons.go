@@ -354,3 +354,10 @@ func Underline(seed uint64, o Options) string {
 	d := Drawing{Ink: []Shape{P(2, 8, 50, 5.5, 110, 6.5, 160, 4.5, 198, 6)}}
 	return d.SVG(seed, Options{ViewBox: o.ViewBox, Class: o.Class, Wobble: 1.6, Stretch: true})
 }
+
+// Arrow draws a hand-drawn arrow pointing right, for <Flow>.
+func Arrow(seed uint64, o Options) string {
+	o.ViewBox = "0 0 48 24"
+	d := Drawing{Ink: []Shape{P(4, 12.5, 18, 11.2, 30, 12.6, 42, 11.8), P(34, 5.5, 42.5, 11.8, 34.5, 18.5)}}
+	return d.SVG(seed, Options{ViewBox: o.ViewBox, Class: o.Class, Wobble: 1.1})
+}

@@ -22,20 +22,20 @@ const LANDING = 'https://www.claude.com/';
 const TYPE = ['fontSize', 'fontWeight', 'lineHeight', 'color'];
 const BOX = ['backgroundColor', 'borderTopColor', 'borderTopWidth', 'borderRadius'];
 const checks = [
-  ['body', DOCS, 'body', '/guia/instalacao', 'body', ['backgroundColor', 'color']],
-  ['header', DOCS, 'header', '/guia/instalacao', 'header.wm-header', ['height', 'backgroundColor', 'borderBottomColor', 'borderBottomWidth']],
-  ['title h1', DOCS, 'main h1', '/guia/instalacao', 'h1.wm-title', TYPE],
-  ['lead', DOCS, 'main h1 ~ p, main header p', '/guia/instalacao', '.wm-lead', TYPE],
-  ['paragraph', DOCS, 'main h2 ~ p', '/guia/instalacao', '.wm-prose p', TYPE],
-  ['h2', DOCS, 'main h2', '/guia/instalacao', '.wm-prose h2', TYPE],
-  ['link', DOCS, 'main p a', '/referencia/markdown', '.wm-prose p a:not([class])', ['color', 'textDecorationColor', 'textUnderlineOffset']],
-  ['inline code', DOCS, 'main p code', '/referencia/markdown', '.wm-prose p code', ['fontSize', 'color', 'backgroundColor', 'borderTopColor', 'borderRadius']],
-  ['code block', DOCS, 'main pre', '/referencia/markdown', '.wm-code__pre', ['fontSize', 'lineHeight']],
-  ['sidebar width', DOCS, 'aside', '/guia/instalacao', '.wm-sidebar', ['width']],
-  ['sidebar link', DOCS, 'aside a[href*="define-tools"]', '/guia/instalacao', '.wm-nav__link:not([aria-current])', ['fontSize', 'height', 'color', 'borderRadius']],
-  ['sidebar active', DOCS, 'aside a[href$="tool-use/overview"]', '/guia/instalacao', '.wm-nav__link[aria-current]', ['backgroundColor', 'color', 'borderRadius']],
-  ['content width', DOCS, 'main h2', '/guia/instalacao', '.wm-prose h2', ['width', 'x']],
-  ['table header', DOCS, 'main th', '/referencia/markdown', '.wm-prose th', ['backgroundColor', 'fontWeight', 'color', 'padding']],
+  ['body', DOCS, 'body', '/guide/install', 'body', ['backgroundColor', 'color']],
+  ['header', DOCS, 'header', '/guide/install', 'header.wm-header', ['height', 'backgroundColor', 'borderBottomColor', 'borderBottomWidth']],
+  ['title h1', DOCS, 'main h1', '/guide/install', 'h1.wm-title', TYPE],
+  ['lead', DOCS, 'main h1 ~ p, main header p', '/guide/install', '.wm-lead', TYPE],
+  ['paragraph', DOCS, 'main h2 ~ p', '/guide/install', '.wm-prose p', TYPE],
+  ['h2', DOCS, 'main h2', '/guide/install', '.wm-prose h2', TYPE],
+  ['link', DOCS, 'main p a', '/reference/markdown', '.wm-prose p a:not([class])', ['color', 'textDecorationColor', 'textUnderlineOffset']],
+  ['inline code', DOCS, 'main p code', '/reference/markdown', '.wm-prose p code', ['fontSize', 'color', 'backgroundColor', 'borderTopColor', 'borderRadius']],
+  ['code block', DOCS, 'main pre', '/reference/markdown', '.wm-code__pre', ['fontSize', 'lineHeight']],
+  ['sidebar width', DOCS, 'aside', '/guide/install', '.wm-sidebar', ['width']],
+  ['sidebar link', DOCS, 'aside a[href*="define-tools"]', '/guide/install', '.wm-nav__link:not([aria-current])', ['fontSize', 'height', 'color', 'borderRadius']],
+  ['sidebar active', DOCS, 'aside a[href$="tool-use/overview"]', '/guide/install', '.wm-nav__link[aria-current]', ['backgroundColor', 'color', 'borderRadius']],
+  ['content width', DOCS, 'main h2', '/guide/install', '.wm-prose h2', ['width', 'x']],
+  ['table header', DOCS, 'main th', '/reference/markdown', '.wm-prose th', ['backgroundColor', 'fontWeight', 'color', 'padding']],
   ['landing bg', LANDING, 'body', '/', 'body', ['backgroundColor', 'color']],
   ['landing h1', LANDING, 'h1', '/', '.wm-hero__title', ['fontWeight', 'color']],
   ['landing primary button', LANDING, 'text:Try Claude', '/', '.wm-button--primary', ['backgroundColor', 'color', 'borderRadius']],
@@ -94,10 +94,10 @@ for (const [label, refURL, refSel, wmPath, wmSel, props] of checks) {
   const [ref, wm] = await Promise.all([measure(await open(refURL), refSel, props), measure(await open(WM + wmPath), wmSel, props)]);
   console.log(`\n${label}`);
   if (!ref || !wm) {
-    console.log(`  ! elemento não encontrado (${!ref ? 'referência: ' + refSel : 'wavemark: ' + wmSel})`);
+    console.log(`  ! element not found (${!ref ? 'reference: ' + refSel : 'wavemark: ' + wmSel})`);
     continue;
   }
-  console.log(`  fonte: ${ref.fontFamily} → ${wm.fontFamily}`);
+  console.log(`  font: ${ref.fontFamily} → ${wm.fontFamily}`);
   for (const p of props) {
     const a = norm(ref[p]), b = norm(wm[p]);
     const ok = close(a, b);
@@ -106,5 +106,5 @@ for (const [label, refURL, refSel, wmPath, wmSel, props] of checks) {
     console.log(`  ${ok ? '✓' : '✗'} ${p.padEnd(20)} ${String(a).padEnd(34)} ${ok ? '' : '→ ' + b}`);
   }
 }
-console.log(`\n${total - mismatches}/${total} propriedades iguais (${SCHEME})`);
+console.log(`\n${total - mismatches}/${total} properties match (${SCHEME})`);
 await browser.close();

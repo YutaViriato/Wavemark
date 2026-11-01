@@ -70,7 +70,7 @@ func lexTag(src []byte, start int) (*tag, *tagError) {
 	}
 	t.Name = string(src[nameStart:i])
 	if strings.ContainsAny(t.Name, ".-") {
-		return nil, &tagError{Off: nameStart, Msg: fmt.Sprintf("nome de componente inválido <%s>", t.Name), Hint: "Nomes de componente são palavras em PascalCase, como <Card>."}
+		return nil, &tagError{Off: nameStart, Msg: fmt.Sprintf("invalid component name <%s>", t.Name), Hint: "Component names are single PascalCase words, like <Card>."}
 	}
 	limit := min(len(src), start+maxTagBytes)
 	for {
@@ -80,14 +80,14 @@ func lexTag(src []byte, start int) (*tag, *tagError) {
 		for i < limit && isSpace(src[i]) {
 			if src[i] == '\n' {
 				if !lineHasContent {
-					return nil, &tagError{Off: start, Msg: fmt.Sprintf("tag <%s> não foi fechada com '>'", t.Name), Hint: "Termine a tag de abertura com '>' (ou '/>' se não tiver conteúdo) antes de uma linha em branco."}
+					return nil, &tagError{Off: start, Msg: fmt.Sprintf("tag <%s> is not closed with '>'", t.Name), Hint: "End the opening tag with '>' (or '/>' if it has no content) before a blank line."}
 				}
 				lineHasContent = false
 			}
 			i++
 		}
 		if i >= limit {
-			return nil, &tagError{Off: start, Msg: fmt.Sprintf("tag <%s> não foi fechada com '>'", t.Name), Hint: "Termine a tag com '>' ou '/>'."}
+			return nil, &tagError{Off: start, Msg: fmt.Sprintf("tag <%s> is not closed with '>'", t.Name), Hint: "End the tag with '>' or '/>'."}
 		}
 		c := src[i]
 		if c == '>' {
@@ -97,19 +97,19 @@ func lexTag(src []byte, start int) (*tag, *tagError) {
 		if c == '/' {
 			if i+1 < len(src) && src[i+1] == '>' {
 				if t.Closing {
-					return nil, &tagError{Off: i, Msg: fmt.Sprintf("tag de fechamento </%s/> inválida", t.Name), Hint: fmt.Sprintf("Escreva </%s>.", t.Name)}
+					return nil, &tagError{Off: i, Msg: fmt.Sprintf("invalid closing tag </%s/>", t.Name), Hint: fmt.Sprintf("Write </%s>.", t.Name)}
 				}
 				t.SelfClosing = true
 				t.End = i + 2
 				return t, nil
 			}
-			return nil, &tagError{Off: i, Msg: "'/' inesperado na tag", Hint: "Use '/>' no fim de uma tag sem conteúdo."}
+			return nil, &tagError{Off: i, Msg: "unexpected '/' in tag", Hint: "Use '/>' at the end of a tag without content."}
 		}
 		if t.Closing {
-			return nil, &tagError{Off: i, Msg: fmt.Sprintf("tag de fechamento </%s> não aceita atributos", t.Name), Hint: fmt.Sprintf("Escreva apenas </%s>.", t.Name)}
+			return nil, &tagError{Off: i, Msg: fmt.Sprintf("closing tag </%s> cannot have attributes", t.Name), Hint: fmt.Sprintf("Write just </%s>.", t.Name)}
 		}
 		if !isNameChar(c) {
-			return nil, &tagError{Off: i, Msg: fmt.Sprintf("caractere inesperado %q na tag <%s>", c, t.Name), Hint: `Atributos têm a forma nome="valor", nome={literal} ou só nome.`}
+			return nil, &tagError{Off: i, Msg: fmt.Sprintf("unexpected character %q in tag <%s>", c, t.Name), Hint: `Attributes look like name="value", name={literal} or just name.`}
 		}
 		a := lexedAttr{Off: i}
 		ns := i
@@ -131,7 +131,7 @@ func lexTag(src []byte, start int) (*tag, *tagError) {
 			i++
 		}
 		if i >= limit {
-			return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("atributo '%s' sem valor", a.Name), Hint: `Use nome="valor".`}
+			return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("attribute '%s' has no value", a.Name), Hint: `Use name="value".`}
 		}
 		switch q := src[i]; q {
 		case '"', '\'':
@@ -157,19 +157,19 @@ func lexTag(src []byte, start int) (*tag, *tagError) {
 				i++
 			}
 			if !closed {
-				return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("aspas do atributo '%s' não foram fechadas", a.Name), Hint: fmt.Sprintf(`Feche com %c. Para usar a aspa dentro do valor, escape com \%c.`, q, q)}
+				return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("the quotes of attribute '%s' are not closed", a.Name), Hint: fmt.Sprintf(`Close it with %c. To use the quote inside the value, escape it as \%c.`, q, q)}
 			}
 			// Like JSX, string attributes may use HTML entities (&quot;, &amp;).
 			a.Value, a.Form = html.UnescapeString(b.String()), components.FormString
 		case '{':
 			end, ok := matchBrace(src, i, limit)
 			if !ok {
-				return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("chaves do atributo '%s' não foram fechadas", a.Name), Hint: "Feche com '}'."}
+				return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("the braces of attribute '%s' are not closed", a.Name), Hint: "Close it with '}'."}
 			}
 			raw := strings.TrimSpace(string(src[i+1 : end]))
 			var v any
 			if err := json.Unmarshal([]byte(raw), &v); err != nil {
-				return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("valor {%s} do atributo '%s' não é um literal", raw, a.Name), Hint: "Expressões JavaScript não são suportadas. Use literais JSON: {2}, {true}, {\"texto\"}, {[1, 2]}."}
+				return nil, &tagError{Off: a.Off, Msg: fmt.Sprintf("value {%s} of attribute '%s' is not a literal", raw, a.Name), Hint: "JavaScript expressions are not supported. Use JSON literals: {2}, {true}, {\"text\"}, {[1, 2]}."}
 			}
 			if s, isStr := v.(string); isStr {
 				a.Value, a.Form = s, components.FormString
@@ -178,10 +178,10 @@ func lexTag(src []byte, start int) (*tag, *tagError) {
 			}
 			i = end + 1
 		default:
-			return nil, &tagError{Off: i, Msg: fmt.Sprintf("valor do atributo '%s' precisa de aspas ou chaves", a.Name), Hint: fmt.Sprintf(`Escreva %s="valor" ou %s={2}.`, a.Name, a.Name)}
+			return nil, &tagError{Off: i, Msg: fmt.Sprintf("the value of attribute '%s' needs quotes or braces", a.Name), Hint: fmt.Sprintf(`Write %s="value" or %s={2}.`, a.Name, a.Name)}
 		}
 		if i < limit && !isSpace(src[i]) && src[i] != '>' && src[i] != '/' {
-			return nil, &tagError{Off: i, Msg: "falta espaço entre atributos", Hint: `Separe os atributos com espaço: a="1" b="2".`}
+			return nil, &tagError{Off: i, Msg: "missing space between attributes", Hint: `Separate attributes with a space: a="1" b="2".`}
 		}
 		t.Attrs = append(t.Attrs, a)
 	}

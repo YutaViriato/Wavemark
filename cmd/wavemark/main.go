@@ -19,15 +19,15 @@ import (
 	"github.com/YutaViriato/Wavemark/internal/spec"
 )
 
-const usage = `wavemark: transforma uma pasta de Markdown em site.
+const usage = `wavemark serves a folder of Markdown files as a website.
 
-Uso:
-  wavemark dev   [pasta] [--addr :4321]   servidor de desenvolvimento (recarrega e mostra erros na página)
-  wavemark serve [pasta] [--addr :8080]   servidor de produção (só sobe sem erros; mantém a última versão válida)
-  wavemark check [pasta] [--json]         valida o conteúdo e sai com código 1 se houver erros
-  wavemark spec  [--json]                 referência de sintaxe e componentes para autores
+Usage:
+  wavemark dev   [folder] [--addr :4321]   development server (live reload, errors shown on the page)
+  wavemark serve [folder] [--addr :8080]   production server (refuses to start with errors; keeps the last valid version)
+  wavemark check [folder] [--json]         validate the content; exits with status 1 if there are errors
+  wavemark spec  [--json]                  syntax and component reference for authors
 
-A pasta padrão é a atual.
+The default folder is the current directory.
 `
 
 func main() {
@@ -49,13 +49,13 @@ func main() {
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:
-		fmt.Fprintf(os.Stderr, "comando desconhecido %q\n\n%s", cmd, usage)
+		fmt.Fprintf(os.Stderr, "unknown command %q\n\n%s", cmd, usage)
 		code = 2
 	}
 	os.Exit(code)
 }
 
-// parse handles "[pasta] [flags]" in any order.
+// parse handles "[folder] [flags]" in any order.
 func parse(fs *flag.FlagSet, args []string) (string, error) {
 	var positional []string
 	for len(args) > 0 {
@@ -74,7 +74,7 @@ func parse(fs *flag.FlagSet, args []string) (string, error) {
 	case 1:
 		return positional[0], nil
 	}
-	return "", fmt.Errorf("esperava uma pasta, recebi %d argumentos", len(positional))
+	return "", fmt.Errorf("expected one folder, got %d arguments", len(positional))
 }
 
 func runServer(args []string, dev bool, defaultAddr string) int {
@@ -83,7 +83,7 @@ func runServer(args []string, dev bool, defaultAddr string) int {
 		name = "dev"
 	}
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	addr := fs.String("addr", defaultAddr, "endereço de escuta")
+	addr := fs.String("addr", defaultAddr, "listen address")
 	root, err := parse(fs, args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -96,7 +96,7 @@ func runServer(args []string, dev bool, defaultAddr string) int {
 		if errors.As(err, &ce) {
 			printDiags(os.Stderr, ce.Diags)
 		}
-		logger.Printf("erro: %v", err)
+		logger.Printf("error: %v", err)
 		return 1
 	}
 	st := srv.Site()
@@ -104,22 +104,22 @@ func runServer(args []string, dev bool, defaultAddr string) int {
 	if dev {
 		printDiags(os.Stderr, st.Diags)
 	}
-	logger.Printf("%d páginas · %d erro(s) · %d aviso(s)", len(st.Pages), errs, warns)
+	logger.Printf("%d pages · %d error(s) · %d warning(s)", len(st.Pages), errs, warns)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {
 		if err := srv.Watch(ctx); err != nil {
-			logger.Printf("watcher desativado: %v", err)
+			logger.Printf("watcher disabled: %v", err)
 		}
 	}()
 	host := *addr
 	if len(host) > 0 && host[0] == ':' {
 		host = "localhost" + host
 	}
-	logger.Printf("servindo %s em http://%s", st.Root, host)
+	logger.Printf("serving %s at http://%s", st.Root, host)
 	if err := srv.ListenAndServe(ctx, *addr); err != nil {
-		logger.Printf("erro: %v", err)
+		logger.Printf("error: %v", err)
 		return 1
 	}
 	return 0
@@ -127,7 +127,7 @@ func runServer(args []string, dev bool, defaultAddr string) int {
 
 func runCheck(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
-	asJSON := fs.Bool("json", false, "saída em JSON")
+	asJSON := fs.Bool("json", false, "JSON output")
 	root, err := parse(fs, args)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -135,7 +135,7 @@ func runCheck(args []string, out io.Writer) int {
 	}
 	st, err := site.Build(site.Options{Root: root, Dev: true})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "erro:", err)
+		fmt.Fprintln(os.Stderr, "error:", err)
 		return 2
 	}
 	errs, warns := diag.Count(st.Diags)
@@ -155,7 +155,7 @@ func runCheck(args []string, out io.Writer) int {
 		_ = enc.Encode(report)
 	} else {
 		printDiags(out, st.Diags)
-		fmt.Fprintf(out, "%d páginas · %d erro(s) · %d aviso(s)\n", len(st.Pages), errs, warns)
+		fmt.Fprintf(out, "%d pages · %d error(s) · %d warning(s)\n", len(st.Pages), errs, warns)
 	}
 	if errs > 0 {
 		return 1
@@ -165,7 +165,7 @@ func runCheck(args []string, out io.Writer) int {
 
 func runSpec(args []string, out io.Writer) int {
 	fs := flag.NewFlagSet("spec", flag.ContinueOnError)
-	asJSON := fs.Bool("json", false, "schemas dos componentes em JSON")
+	asJSON := fs.Bool("json", false, "component schemas as JSON")
 	if err := fs.Parse(args); err != nil {
 		return 2
 	}

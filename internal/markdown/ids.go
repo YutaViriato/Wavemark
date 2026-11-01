@@ -9,9 +9,9 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-// accents folds Latin letters with diacritics to ASCII so that Portuguese,
-// Spanish and French headings get readable anchors ("Configuração" →
-// "configuracao") instead of goldmark's default, which drops the letter.
+// accents folds Latin letters with diacritics to ASCII so that headings in
+// Portuguese, Spanish or French get readable anchors ("Café crème" →
+// "cafe-creme") instead of goldmark's default, which drops the letter.
 var accents = map[rune]string{
 	'á': "a", 'à': "a", 'â': "a", 'ã': "a", 'ä': "a", 'å': "a", 'ā': "a",
 	'é': "e", 'è': "e", 'ê': "e", 'ë': "e", 'ē': "e",
@@ -56,7 +56,7 @@ func newIDs() *ids { return &ids{used: map[string]bool{}} }
 func (s *ids) Generate(value []byte, kind ast.NodeKind) []byte {
 	base := Slug(stripInlineMarkup(string(value)))
 	if base == "" {
-		base = "secao"
+		base = "section"
 	}
 	id := base
 	for i := 1; s.used[id]; i++ {

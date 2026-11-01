@@ -18,85 +18,85 @@ func Markdown() string {
 	var b strings.Builder
 	w := func(format string, args ...any) { fmt.Fprintf(&b, format, args...) }
 
-	w("# Referência do Wavemark para autores\n\n")
-	w("Wavemark transforma uma pasta de Markdown em site. Este documento é a referência completa da sintaxe aceita. ")
-	w("Valide sempre com `wavemark check <pasta> --json` e corrija até não haver erros.\n\n")
+	w("# Wavemark authoring reference\n\n")
+	w("Wavemark turns a folder of Markdown files into a website. This document is the complete reference of the syntax it accepts. ")
+	w("Always validate with `wavemark check <folder> --json` and fix until there are no errors.\n\n")
 
-	w("## Estrutura da pasta\n\n")
-	w("- Cada arquivo `.md` é uma página. A rota vem do caminho: `guia/instalacao.md` → `/guia/instalacao`.\n")
-	w("- `index.md` (ou `README.md`) é a página da própria pasta: `guia/index.md` → `/guia`. A raiz `index.md` é a home.\n")
-	w("- Cada pasta é uma seção da navegação lateral. `_meta.yaml` na pasta define título, ordem e configurações herdadas.\n")
-	w("- `wavemark.yaml` na raiz configura o site.\n")
-	w("- Outros arquivos (imagens, PDFs) são servidos no mesmo caminho: `img/a.png` → `/img/a.png`.\n")
-	w("- Nomes que começam com `.` e `node_modules` são ignorados.\n\n")
+	w("## Folder structure\n\n")
+	w("- Every `.md` file is a page. The route comes from the path: `guide/install.md` → `/guide/install`.\n")
+	w("- `index.md` (or `README.md`) is the page of its folder: `guide/index.md` → `/guide`. The root `index.md` is the home page.\n")
+	w("- Every folder is a section of the sidebar. A `_meta.yaml` in the folder sets its title, order and inherited settings.\n")
+	w("- `wavemark.yaml` at the root configures the site.\n")
+	w("- Other files (images, PDFs) are served at the same path: `img/a.png` → `/img/a.png`.\n")
+	w("- Names starting with `.` and `node_modules` are ignored.\n\n")
 
-	w("## Markdown aceito\n\n")
-	w("CommonMark com extensões GFM: tabelas, ~~riscado~~, listas de tarefas, autolinks e notas de rodapé (`[^1]`).\n\n")
-	w("Regras do Wavemark:\n\n")
-	w("- **HTML cru é proibido** (inclusive `<br>`, `<div>`, `<img>`). Use Markdown ou componentes. Comentários `<!-- -->` são permitidos e não aparecem.\n")
-	w("- **Só blocos de código cercados** (```` ``` ````). Blocos indentados com 4 espaços não existem; indentação vira texto normal.\n")
-	w("- A cerca aceita linguagem e título: ```` ```python title=\"main.py\" ````. Há realce para mais de 200 linguagens (bash, python, typescript, go, rust, json, yaml, sql, html, css, diff…); `text` desliga o realce.\n")
-	w("- Blocos `mermaid` e de matemática ainda não são renderizados: aparecem como código. Para diagramas, use uma imagem SVG com `<Figure>`.\n")
-	w("- **Um título por página**: `title` no frontmatter ou o primeiro `# H1` do corpo, nunca os dois. Use `##` e `###` para seções; eles formam o sumário.\n")
-	w("- Âncoras são geradas dos títulos sem acentos: `## Configuração avançada` → `#configuracao-avancada`. Para fixar uma âncora: `## Título {#minha-ancora}`.\n")
-	w("- Destinos aceitos em links, `href` e `nav`: arquivo `.md` relativo, rota absoluta (`/guia`), âncora (`#secao`), `https://`, `mailto:` e `tel:`.\n")
-	w("- **Links internos apontam para o arquivo**: `[Instalação](./instalacao.md)`, `[Seção](../guia/x.md#secao)`. Rotas absolutas também valem: `/guia/x`. Links quebrados e âncoras inexistentes são erro.\n")
-	w("- Imagens: `![descrição](./img/a.png)`. O arquivo precisa existir e a descrição não pode ficar vazia.\n")
-	w("- Notas de rodapé: `texto[^1]` e, em uma linha própria, `[^1]: a nota`.\n\n")
+	w("## Markdown\n\n")
+	w("CommonMark with the GFM extensions: tables, ~~strikethrough~~, task lists, autolinks and footnotes (`[^1]`).\n\n")
+	w("Wavemark rules:\n\n")
+	w("- **Raw HTML is forbidden** (including `<br>`, `<div>`, `<img>`). Use Markdown or components. Comments `<!-- -->` are allowed and never rendered.\n")
+	w("- **Fenced code blocks only** (```` ``` ````). A block indented by 4 spaces is an error.\n")
+	w("- A fence takes a language and a title: ```` ```python title=\"main.py\" ````. More than 200 languages are highlighted (bash, python, typescript, go, rust, json, yaml, sql, html, css, diff…); `text` turns highlighting off.\n")
+	w("- `mermaid` and math blocks are not rendered yet and show as code. For diagrams use `<Flow>`, or an SVG image with `<Figure>`.\n")
+	w("- **One title per page**: `title` in the frontmatter or the first `# H1` of the body, never both. Use `##` and `###` for sections; they make up the table of contents.\n")
+	w("- Anchors come from headings, lowercased and without accents: `## Advanced Setup` → `#advanced-setup`. To pin an anchor: `## Title {#my-anchor}`.\n")
+	w("- Destinations accepted in links, `href` and `nav`: a relative `.md` file, an absolute route (`/guide`), an anchor (`#section`), `https://`, `mailto:` and `tel:`.\n")
+	w("- **Internal links point to files**: `[Install](./install.md)`, `[Section](../guide/x.md#section)`. Absolute routes also work: `/guide/x`. Broken links and missing anchors are errors.\n")
+	w("- Images: `![description](./img/a.png)`. The file must exist and the description must not be empty.\n")
+	w("- Footnotes: `text[^1]` and, on its own line, `[^1]: the note`.\n\n")
 
-	w("## Componentes\n\n")
-	w("Componentes são tags com nome em PascalCase, escritas como JSX declarativo. Não há JavaScript.\n\n")
-	w("Regras de sintaxe:\n\n")
-	w("1. Cada tag fica **em uma linha própria**: abertura, fechamento e tags autofechadas (`<Button ... />`).\n")
-	w("2. A tag de abertura pode quebrar linhas entre atributos, mas não pode conter linha em branco.\n")
-	w("3. O conteúdo entre as tags é Markdown e pode ser indentado; a indentação da primeira linha de conteúdo é removida.\n")
-	w("4. Forma curta em uma linha: `<Step title=\"Instale\">Rode o instalador.</Step>`.\n")
-	w("5. Valores: texto entre aspas `title=\"...\"` (escape aspas com `\\\"`), literais JSON entre chaves `cols={3}` `open={false}`, ou o nome sozinho para verdadeiro (`open`).\n")
-	w("6. Atributos desconhecidos, obrigatórios ausentes e valores fora do tipo são erro.\n")
-	w("7. `<Badge>` e `<Icon />` dentro de um título não entram na âncora: `## Exportar <Badge>Novo</Badge>` gera `#exportar`.\n")
-	w("8. **Componentes inline** (`<Badge>`, `<Icon />`) são a exceção: ficam no meio do texto, de títulos ou de células de tabela, e abrem e fecham na mesma linha: `## Exportação <Badge color=\"clay\">Novo</Badge>`.\n\n")
+	w("## Components\n\n")
+	w("Components are PascalCase tags written like declarative JSX. There is no JavaScript.\n\n")
+	w("Syntax rules:\n\n")
+	w("1. Every tag sits **on its own line**: opening, closing and self-closing tags (`<Button ... />`).\n")
+	w("2. An opening tag may span several lines between attributes, but not a blank line.\n")
+	w("3. Content between tags is Markdown and may be indented; the indentation of the first content line is removed.\n")
+	w("4. One-line form: `<Step title=\"Install\">Run the installer.</Step>`.\n")
+	w("5. Values: quoted strings `title=\"...\"` (escape quotes as `\\\"`), JSON literals in braces `cols={3}` `open={false}`, or the bare name for true (`open`).\n")
+	w("6. Unknown attributes, missing required ones and values of the wrong type are errors.\n")
+	w("7. **Inline components** (`<Badge>`, `<Icon />`) are the exception: they go inside text, headings or table cells, and open and close on the same line: `## Export <Badge color=\"clay\">New</Badge>`.\n")
+	w("8. `<Badge>` and `<Icon />` inside a heading are not part of its anchor: `## Export <Badge>New</Badge>` gives `#export`.\n\n")
 
 	for _, s := range components.All() {
 		w("### <%s>\n\n%s\n\n", s.Name, s.Summary)
+		if s.Inline {
+			w("Inline: use it inside a paragraph, heading or table cell.\n\n")
+		}
 		if len(s.Layouts) > 0 {
 			w("Layouts: %s.\n\n", strings.Join(s.Layouts, ", "))
 		}
-		if s.Inline {
-			w("Inline: use dentro de um parágrafo, título ou célula de tabela.\n\n")
-		}
 		if s.Parent != "" {
-			w("Precisa estar diretamente dentro de `<%s>`.\n\n", s.Parent)
+			w("Must be directly inside `<%s>`.\n\n", s.Parent)
 		}
 		switch s.Children {
 		case components.ChildNone:
-			w("Sem conteúdo: use a forma autofechada `<%s ... />`.\n\n", s.Name)
+			w("No content: use the self-closing form `<%s ... />`.\n\n", s.Name)
 		case components.ChildOnly:
 			var allowed []string
 			for _, a := range s.Allowed {
 				if a == components.ChildCode {
-					allowed = append(allowed, "blocos de código cercados")
+					allowed = append(allowed, "fenced code blocks")
 				} else {
 					allowed = append(allowed, "`<"+a+">`")
 				}
 			}
-			w("Conteúdo: apenas %s.\n\n", strings.Join(allowed, " ou "))
+			w("Content: only %s.\n\n", strings.Join(allowed, " or "))
 		case components.ChildText:
-			w("Conteúdo: texto curto entre as tags.\n\n")
+			w("Content: short text between the tags.\n\n")
 		default:
 			if !s.SkipChildren {
-				w("Conteúdo: Markdown e outros componentes.\n\n")
+				w("Content: Markdown and other components.\n\n")
 			}
 		}
 		if len(s.Attrs) > 0 {
-			w("| Atributo | Tipo | Obrigatório | Padrão | Descrição |\n|---|---|---|---|---|\n")
+			w("| Attribute | Type | Required | Default | Description |\n|---|---|---|---|---|\n")
 			for _, a := range s.Attrs {
 				typ := a.Type.String()
 				if a.Type == components.TEnum {
 					typ = strings.Join(quoteAll(a.Enum), " \\| ")
 				}
-				req := "não"
+				req := "no"
 				if a.Required {
-					req = "sim"
+					req = "yes"
 				}
 				def := ""
 				if a.Default != nil {
@@ -109,44 +109,44 @@ func Markdown() string {
 		w("```mdx\n%s\n```\n\n", s.Example)
 	}
 
-	w("## Ícones\n\n")
-	w("Ícones desenhados à mão, usados em `<Card icon>`, `<Icon name>` e no `icon` do frontmatter. Nomes do Lucide, Font Awesome e Mintlify comuns também funcionam (`rocket-launch`, `settings`, `magnifying-glass`, `envelope`…).\n\n")
+	w("## Icons\n\n")
+	w("Hand-drawn icons, used by `<Card icon>`, `<FlowStep icon>`, `<Icon name>` and the `icon` frontmatter key. Common Lucide, Font Awesome and Mintlify names also work (`rocket-launch`, `settings`, `magnifying-glass`, `envelope`…).\n\n")
 	w("%s\n\n", "`"+strings.Join(sketch.Names(), "`, `")+"`")
 
-	w("## Frontmatter da página\n\n")
-	w("Bloco YAML no topo do arquivo, entre linhas `---`. Todas as chaves são opcionais.\n\n")
+	w("## Page frontmatter\n\n")
+	w("A YAML block at the top of the file, between `---` lines. Every key is optional.\n\n")
 	fieldTable(&b, config.Describe(config.Frontmatter{}))
-	w("```yaml\n---\ntitle: Instalação\ndescription: Como instalar o Wavemark em um minuto.\norder: 1\n---\n```\n\n")
-	w("Post de blog ou artigo:\n\n```yaml\n---\ntitle: Por que escrevemos devagar\ndescription: Notas sobre o nosso processo de pesquisa.\nlayout: article\ndate: 2026-03-14\nauthor: Ana Lima\n---\n```\n\n")
+	w("```yaml\n---\ntitle: Installation\ndescription: Install Wavemark in a minute.\norder: 1\n---\n```\n\n")
+	w("A blog post or article:\n\n```yaml\n---\ntitle: Why we write slowly\ndescription: Notes on our research process.\nlayout: article\ndate: 2026-03-14\nauthor: Ada Lovelace\n---\n```\n\n")
 
-	w("## _meta.yaml (por pasta)\n\n")
+	w("## _meta.yaml (per folder)\n\n")
 	fieldTable(&b, config.Describe(config.Folder{}))
-	w("Chaves de `defaults`:\n\n")
+	w("`defaults` keys:\n\n")
 	fieldTable(&b, config.Describe(config.Defaults{}))
-	w("```yaml\ntitle: Guia\norder: [instalacao, configuracao, deploy]\ndefaults:\n  toc: true\n```\n\n")
-	w("Os `defaults` valem também para o `index.md` da própria pasta. No exemplo abaixo, a página de listagem do blog volta a `layout: docs` no próprio frontmatter.\n\n")
-	w("Pasta de blog (posts mais recentes primeiro, todos como artigo):\n\n```yaml\ntitle: Blog\nsort: date\ndefaults:\n  layout: article\n```\n\n")
+	w("```yaml\ntitle: Guide\norder: [install, configuration, deploy]\ndefaults:\n  toc: true\n```\n\n")
+	w("`defaults` also apply to the folder's own `index.md`. In the example below, the blog listing page sets `layout: docs` again in its own frontmatter.\n\n")
+	w("A blog folder (newest posts first, all as articles):\n\n```yaml\ntitle: Blog\nsort: date\ndefaults:\n  layout: article\n```\n\n")
 
-	w("## wavemark.yaml (raiz)\n\n")
+	w("## wavemark.yaml (root)\n\n")
 	fieldTable(&b, config.Describe(config.Site{}))
-	w("```yaml\ntitle: Acme Docs\ndescription: Documentação da Acme.\nlang: pt-BR\nlogo:\n  text: Acme\n  src: ./img/logo.svg\nnav:\n  - label: Guia\n    href: /guia\n  - label: API\n    href: ./api/index.md\nfooter:\n  text: © 2026 Acme\n  links:\n    - label: GitHub\n      href: https://github.com/acme\ndefaults:\n  layout: docs\n```\n\n")
-	w("Não há chaves de tema, cor, CSS ou scripts: a aparência é a do tema.\n\n")
+	w("```yaml\ntitle: Acme Docs\ndescription: Documentation for Acme.\nlang: en\nlogo:\n  text: Acme\n  src: ./img/logo.svg\nnav:\n  - label: Guide\n    href: /guide\n  - label: API\n    href: ./api/index.md\nfooter:\n  text: © 2026 Acme\n  links:\n    - label: GitHub\n      href: https://github.com/acme\ndefaults:\n  layout: docs\n```\n\n")
+	w("There are no theme, color, CSS or script keys: the look is the theme's.\n\n")
 
-	w("## Cascata de configuração\n\n")
-	w("`wavemark.yaml › defaults` → `_meta.yaml › defaults` de cada pasta, da mais externa para a mais interna → frontmatter. ")
-	w("O nível mais específico vence. Listas substituem, não somam.\n\n")
+	w("## Configuration cascade\n\n")
+	w("`wavemark.yaml › defaults` → each folder's `_meta.yaml › defaults`, outermost to innermost → frontmatter. ")
+	w("The most specific level wins. Lists replace, they do not merge.\n\n")
 
 	w("## Layouts\n\n")
-	w("- `docs` (padrão): navegação lateral, título serifado, sumário à direita, páginas anterior/próxima. Para documentação.\n")
-	w("- `article`: leitura longa sem navegação lateral, com capítulos (`##`) à esquerda e data, autor e seção à direita. Para ensaios, posts e notícias.\n")
-	w("- `landing`: página de entrada. Comece com `<Hero>`; use `##` para seções, `<Columns>` com `<Card>` ou `<Stat>` para grades e `<Section>` para faixas com fundo. O `title` do frontmatter vira só o título da aba do navegador; o título visível é o do `<Hero>`.\n\n")
-	w("## Movimento\n\n")
-	w("O tema anima sozinho: o título do `<Hero>` sobe palavra por palavra, ícones e marcadores de `<Steps>` se desenham, blocos aparecem ao rolar e a navegação entre páginas tem transição. Não há nada a configurar. Quem pede menos movimento no sistema vê tudo estático.\n")
+	w("- `docs` (default): sidebar navigation, serif title, table of contents on the right, previous and next pages. For documentation.\n")
+	w("- `article`: long-form reading without a sidebar, with chapters (`##`) on the left and date, author and section on the right. For essays, posts and news.\n")
+	w("- `landing`: an entry page. Start with `<Hero>`; use `##` for sections, `<Columns>` with `<Card>` or `<Stat>` for grids and `<Section>` for full-width bands. The frontmatter `title` only becomes the browser tab title; the visible title is the `<Hero>` title.\n\n")
+	w("## Motion\n\n")
+	w("The theme animates on its own: the `<Hero>` title rises word by word, icons, `<Steps>` markers and `<Flow>` arrows draw themselves, blocks appear on scroll and page navigation has a transition. There is nothing to configure. Readers who ask their system for reduced motion see everything static.\n")
 	return b.String()
 }
 
 func fieldTable(b *strings.Builder, fields []config.Field) {
-	b.WriteString("| Chave | Tipo | Descrição |\n|---|---|---|\n")
+	b.WriteString("| Key | Type | Description |\n|---|---|---|\n")
 	for _, f := range fields {
 		fmt.Fprintf(b, "| `%s` | %s | %s |\n", f.Key, f.Type, f.Doc)
 	}

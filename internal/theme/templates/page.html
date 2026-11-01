@@ -44,7 +44,7 @@
 {{define "diagnostics"}}{{if and .Dev .Diags}}
 <aside class="wm-devdiag" data-wm-devdiag aria-live="polite">
   <details open>
-    <summary>{{len .Diags}} {{if eq (len .Diags) 1}}problema{{else}}problemas{{end}} nesta página <span class="wm-devdiag__hint">wavemark dev</span></summary>
+    <summary>{{len .Diags}} {{if eq (len .Diags) 1}}problem{{else}}problems{{end}} on this page <span class="wm-devdiag__hint">wavemark dev</span></summary>
     <ol>
     {{range .Diags}}<li class="wm-devdiag__item wm-devdiag__item--{{.Severity}}"><code>{{.File}}{{if .Line}}:{{.Line}}{{if .Column}}:{{.Column}}{{end}}{{end}}</code> <strong>{{.Message}}</strong> <span class="wm-devdiag__code">{{.Code}}</span>{{with .Hint}}<p>{{.}}</p>{{end}}</li>{{end}}
     </ol>

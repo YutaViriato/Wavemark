@@ -1,19 +1,19 @@
 title: Wavemark
-description: Runtime que transforma uma pasta de Markdown em site, com a identidade visual da Anthropic.
-lang: pt-BR
+description: A runtime that turns a folder of Markdown into a website, in the visual language of Anthropic and Claude.
+lang: en
 logo:
   text: Wavemark Docs
 nav:
-  - label: Guia
-    href: /guia
-  - label: Referência
-    href: /referencia/componentes
+  - label: Guide
+    href: /guide
+  - label: Reference
+    href: /reference/components
   - label: Blog
     href: /blog
-  - label: Para agentes
-    href: /agentes
+  - label: For agents
+    href: /agents
 footer:
-  text: Wavemark · feito com Markdown
+  text: Wavemark · made with Markdown
   links:
     - label: GitHub
       href: https://github.com/YutaViriato/Wavemark

@@ -29,21 +29,21 @@ func TestExampleSite(t *testing.T) {
 	layouts := map[string]bool{}
 	for _, p := range s.Pages {
 		if p.HTML == nil {
-			t.Errorf("%s não renderizou", p.Rel)
+			t.Errorf("%s was not rendered", p.Rel)
 			continue
 		}
 		html := string(p.HTML)
 		layouts[p.Settings.Layout] = true
 		if !strings.Contains(html, `data-layout="`+p.Settings.Layout+`"`) || !strings.Contains(html, "</html>") {
-			t.Errorf("%s: documento incompleto", p.Rel)
+			t.Errorf("%s: incomplete document", p.Rel)
 		}
 		if strings.Contains(html, ` style="`) {
-			t.Errorf("%s: atributo style bloqueado pela CSP", p.Rel)
+			t.Errorf("%s: style attribute blocked by the CSP", p.Rel)
 		}
 	}
 	for _, l := range []string{"docs", "landing", "article"} {
 		if !layouts[l] {
-			t.Errorf("o site de exemplo não usa o layout %s", l)
+			t.Errorf("the example site does not use the %s layout", l)
 		}
 	}
 	if _, err := th.RenderNotFound(s, Options{}); err != nil {
@@ -62,6 +62,6 @@ func TestAssetsAreHashed(t *testing.T) {
 	}
 	a, ok := th.Lookup(strings.TrimPrefix(css, AssetPrefix))
 	if !ok || !strings.Contains(string(a.Data), AssetPrefix) {
-		t.Error("o CSS deveria apontar para as fontes com hash")
+		t.Error("the CSS should point to the hashed fonts")
 	}
 }

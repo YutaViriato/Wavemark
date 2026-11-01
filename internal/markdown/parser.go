@@ -107,7 +107,7 @@ func (p *componentParser) Open(parent ast.Node, reader text.Reader, pc parser.Co
 	}
 
 	if t.Closing {
-		st.diags.Errorf(l, c, diag.CodeComponentStray, fmt.Sprintf("Remova </%s> ou adicione <%s> antes dele.", t.Name, t.Name), "</%s> sem um <%s> aberto", t.Name, t.Name)
+		st.diags.Errorf(l, c, diag.CodeComponentStray, fmt.Sprintf("Remove </%s> or add <%s> before it.", t.Name, t.Name), "</%s> without an open <%s>", t.Name, t.Name)
 		reader.AdvanceToEOL()
 		return ast.NewTextBlock(), parser.NoChildren
 	}
@@ -126,7 +126,7 @@ func (p *componentParser) Open(parent ast.Node, reader text.Reader, pc parser.Co
 		n.SelfClosing, n.Closed = true, true
 		if len(trimmed) > 0 {
 			rl, rc := st.position(restSeg.Start)
-			st.diags.Errorf(rl, rc, diag.CodeComponentSyntax, "Coloque o texto em uma linha própria, depois da tag.", "texto depois de <%s />", t.Name)
+			st.diags.Errorf(rl, rc, diag.CodeComponentSyntax, "Put the text on its own line after the tag.", "text after <%s />", t.Name)
 		}
 		reader.AdvanceToEOL()
 		return n, parser.NoChildren
@@ -156,8 +156,8 @@ func (p *componentParser) Open(parent ast.Node, reader text.Reader, pc parser.Co
 
 	rl, rc := st.position(restSeg.Start)
 	st.diags.Errorf(rl, rc, diag.CodeComponentSyntax,
-		fmt.Sprintf("Coloque o conteúdo nas linhas seguintes e feche com </%s> em linha própria, ou use a forma de uma linha <%s ...>texto</%s>.", t.Name, t.Name, t.Name),
-		"conteúdo na mesma linha da tag <%s> sem o fechamento </%s>", t.Name, t.Name)
+		fmt.Sprintf("Put the content on the following lines and close with </%s> on its own line, or use the one-line form <%s ...>text</%s>.", t.Name, t.Name, t.Name),
+		"content on the same line as <%s> without the closing </%s>", t.Name, t.Name)
 	reader.AdvanceToEOL()
 	st.open[n] = &openInfo{}
 	return n, parser.HasChildren
@@ -206,7 +206,7 @@ func (p *componentParser) Continue(node ast.Node, reader text.Reader, pc parser.
 			_, seg := reader.PeekLine()
 			lead := len(line) - len(bytes.TrimLeft(line, " \t"))
 			l, c := st.position(seg.Start + lead)
-			st.diags.Errorf(l, c, diag.CodeComponentMismatch, fmt.Sprintf("Feche <%s> (aberto na linha %d) com </%s>.", n.Name, n.Line, n.Name), "esperava </%s>, encontrou </%s>", n.Name, name)
+			st.diags.Errorf(l, c, diag.CodeComponentMismatch, fmt.Sprintf("Close <%s> (opened on line %d) with </%s>.", n.Name, n.Line, n.Name), "expected </%s>, found </%s>", n.Name, name)
 		}
 		n.Closed = true
 		reader.AdvanceToEOL()
@@ -312,7 +312,7 @@ func (p *componentParser) Close(node ast.Node, reader text.Reader, pc parser.Con
 		delete(st.open, n)
 	}
 	if !n.Closed && st != nil {
-		st.diags.Errorf(n.Line, n.Col, diag.CodeComponentUnclosed, fmt.Sprintf("Adicione </%s> em uma linha própria depois do conteúdo, ou use <%s ... /> se ele não tiver conteúdo.", n.Name, n.Name), "<%s> aberto e nunca fechado", n.Name)
+		st.diags.Errorf(n.Line, n.Col, diag.CodeComponentUnclosed, fmt.Sprintf("Add </%s> on its own line after the content, or use <%s ... /> if it has no content.", n.Name, n.Name), "<%s> is opened but never closed", n.Name)
 		n.Closed = true
 	}
 }

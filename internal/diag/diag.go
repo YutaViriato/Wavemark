@@ -76,7 +76,7 @@ func (d Diagnostic) String() string {
 	}
 	fmt.Fprintf(&b, ": %s [%s] %s", d.Severity, d.Code, d.Message)
 	if d.Hint != "" {
-		b.WriteString("\n    dica: ")
+		b.WriteString("\n    hint: ")
 		b.WriteString(d.Hint)
 	}
 	return b.String()

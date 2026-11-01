@@ -134,9 +134,9 @@
   if (!reduceMotion && "IntersectionObserver" in window) {
     var layout = root.getAttribute("data-layout");
     var selectors = {
-      landing: ".wm-prose--landing > :not(.wm-hero, .wm-columns, .wm-steps, .wm-section, .wm-pagelist, hr), .wm-section__inner > :not(.wm-columns, .wm-steps, .wm-pagelist), .wm-columns > *, .wm-steps > *, .wm-pagelist > *",
-      article: ".wm-prose--reading > .wm-figure, .wm-prose--reading > .wm-quote, .wm-prose--reading .wm-columns > *, .wm-prose--reading > .wm-steps > *",
-      docs: ".wm-prose .wm-columns > *, .wm-prose .wm-steps > *, .wm-prose > .wm-figure, .wm-prose .wm-pagelist > *"
+      landing: ".wm-prose--landing > :not(.wm-hero, .wm-columns, .wm-steps, .wm-section, .wm-pagelist, .wm-flow, hr), .wm-section__inner > :not(.wm-columns, .wm-steps, .wm-pagelist, .wm-flow), .wm-columns > *, .wm-steps > *, .wm-pagelist > *, .wm-flow__step",
+      article: ".wm-prose--reading .wm-flow__step, .wm-prose--reading > .wm-figure, .wm-prose--reading > .wm-quote, .wm-prose--reading .wm-columns > *, .wm-prose--reading > .wm-steps > *",
+      docs: ".wm-prose .wm-flow__step, .wm-prose .wm-columns > *, .wm-prose .wm-steps > *, .wm-prose > .wm-figure, .wm-prose .wm-pagelist > *"
     };
     var els = document.querySelectorAll(selectors[layout] || selectors.docs);
     var vh = window.innerHeight;

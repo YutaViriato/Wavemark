@@ -24,7 +24,7 @@ func (s *Site) LLMSTxt() []byte {
 		return s.Config.BaseURL + raw
 	}
 	item := func(p *Page) {
-		if p.Unpublished {
+		if p.Unpublished || p == s.NotFound {
 			return
 		}
 		b.WriteString("- [" + p.Title + "](" + url(p) + ")")
