@@ -179,4 +179,78 @@
     }, { rootMargin: "-56px 0px -55% 0px" });
     targets.forEach(function (t) { if (t) io.observe(t); });
   }
+
+  // ---- wavemark browse: filter the file list ----
+  var filter = document.querySelector("[data-wm-filter]");
+  if (filter) {
+    var box = filter.closest("[data-wm-filter-box]");
+    if (box) box.hidden = false;
+    var entries = Array.prototype.slice.call(document.querySelectorAll("[data-wm-entry]"));
+    var groups = Array.prototype.slice.call(document.querySelectorAll("[data-wm-group]"));
+    var recent = document.querySelector("[data-wm-recent]");
+    var none = document.querySelector("[data-wm-filter-empty]");
+    var term = document.querySelector("[data-wm-filter-term]");
+    var filterKey = "wm-filter:" + location.pathname;
+    var runFilter = function () {
+      var raw = filter.value.trim();
+      var words = raw.toLowerCase().split(/\s+/).filter(Boolean);
+      var shown = 0;
+      entries.forEach(function (el) {
+        var hay = el.getAttribute("data-search") || "";
+        var ok = words.every(function (w) { return hay.indexOf(w) >= 0; });
+        el.hidden = !ok;
+        if (ok) shown++;
+      });
+      groups.forEach(function (g) { g.hidden = !g.querySelector("[data-wm-entry]:not([hidden])"); });
+      if (recent) recent.hidden = words.length > 0;
+      if (none) none.hidden = shown > 0 || words.length === 0;
+      if (term) term.textContent = raw;
+      try { raw ? sessionStorage.setItem(filterKey, raw) : sessionStorage.removeItem(filterKey); } catch (e) {}
+    };
+    try { var saved = sessionStorage.getItem(filterKey); if (saved) filter.value = saved; } catch (e) {}
+    filter.addEventListener("input", runFilter);
+    filter.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { filter.value = ""; runFilter(); filter.blur(); }
+      if (e.key === "Enter") {
+        var first = document.querySelector("[data-wm-entry]:not([hidden]) a");
+        if (first) first.click();
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      var el = document.activeElement;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey || el === filter) return;
+      if (el && (/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.isContentEditable)) return;
+      e.preventDefault();
+      filter.focus();
+    });
+    if (filter.value) runFilter();
+  }
+
+  // ---- Relative times ("3 minutes ago") stay current ----
+  var agos = document.querySelectorAll("[data-wm-ago]");
+  if (agos.length) {
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var ago = function (t, now) {
+      var s = (now - t) / 1000, m = s / 60, h = m / 60, d = h / 24;
+      if (s < 45) return "just now";
+      if (s < 90) return "1 minute ago";
+      if (m < 45) return Math.round(m) + " minutes ago";
+      if (m < 90) return "1 hour ago";
+      if (h < 22) return Math.round(h) + " hours ago";
+      if (h < 36) return "yesterday";
+      if (d < 26) return Math.round(d) + " days ago";
+      var date = new Date(t);
+      var text = months[date.getMonth()] + " " + date.getDate();
+      return date.getFullYear() === new Date(now).getFullYear() ? text : text + ", " + date.getFullYear();
+    };
+    var tick = function () {
+      var now = Date.now();
+      Array.prototype.forEach.call(agos, function (el) {
+        var t = Date.parse(el.getAttribute("datetime"));
+        if (!isNaN(t)) el.textContent = ago(t, now);
+      });
+    };
+    tick();
+    setInterval(tick, 30000);
+  }
 })();

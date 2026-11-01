@@ -19,6 +19,25 @@ wavemark dev [folder] [--addr :4321]
 
 Serves the folder, reloads the browser on every change and shows each page's errors in an overlay. The terminal lists every diagnostic after each rebuild. When the server restarts with a new binary, open pages reload by themselves.
 
+## wavemark browse
+
+```bash
+wavemark browse [folder] [--no-open] [--all] [--addr localhost:4400]
+```
+
+Opens every Markdown file of a project in the browser: READMEs, `CLAUDE.md` and `AGENTS.md`, plans, specs and notes that agents write. It works in any folder; the files do not need to be a Wavemark site.
+
+- **The listing** shows the files that changed most recently, then every file by folder, with its title, first paragraph and age. Type `/` to filter by name, path or text. Each folder has its own listing.
+- **Each file** is rendered with the Wavemark theme: sidebar with the file tree, table of contents, highlighted code, frontmatter as a table, and GitHub alerts (`> [!NOTE]`) as callouts. Relative links between files work.
+- **It stays current.** New and edited files appear while the page is open. Saving a file that is not Markdown does not reload anything.
+- **Agent files are labelled:** instructions (`CLAUDE.md`, `AGENTS.md`, `.kiro/steering/`, `.cursor/rules/`, `.github/copilot-instructions.md`…), specs (`.kiro/specs/`), skills, commands and subagents.
+
+The files are read as plain GitHub-flavoured Markdown, so nothing is validated. Raw HTML is cleaned: simple tags such as `<details>`, `<kbd>`, `<br>` and `<img>` render, and anything else shows as text. Indented code renders as code.
+
+Inside a git repository, files ignored by `.gitignore` are left out; `--all` includes them. Dependency and cache folders (`node_modules`, `vendor`, `.venv`…) are always skipped, and only Markdown and images are served.
+
+The server listens on `localhost` only, from port 4400 up to the first free one, and opens your browser (`$BROWSER` if set). `--no-open` only prints the address. With `--addr`, a host such as `0.0.0.0:4400` exposes the files to your network; the command warns when it does.
+
 ## wavemark build
 
 ```bash

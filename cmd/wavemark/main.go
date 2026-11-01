@@ -9,12 +9,17 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"runtime/debug"
+	"strings"
 	"syscall"
 
+	"github.com/YutaViriato/Wavemark/internal/browse"
 	"github.com/YutaViriato/Wavemark/internal/diag"
 	"github.com/YutaViriato/Wavemark/internal/export"
 	"github.com/YutaViriato/Wavemark/internal/scaffold"
@@ -32,6 +37,9 @@ const usage = `wavemark turns a folder of Markdown files into a website.
 Usage:
   wavemark init  [folder]                   create a starter site
   wavemark dev   [folder] [--addr :4321]    preview with live reload; errors show on the page
+  wavemark browse [folder] [--no-open] [--all] [--addr localhost:4400]
+                                            read every Markdown file of a project (READMEs,
+                                            agent instructions, plans, specs) in the browser
   wavemark check [folder] [--json]          validate; exits with status 1 if there are errors
   wavemark build [folder] [--out dist] [--base /path]
                                             write static HTML for GitHub Pages or any web server
@@ -57,6 +65,8 @@ func main() {
 		code = runServer(args, true, ":4321")
 	case "serve":
 		code = runServer(args, false, ":8080")
+	case "browse":
+		code = runBrowse(args)
 	case "check":
 		code = runCheck(args, os.Stdout)
 	case "build":
@@ -171,6 +181,130 @@ func runServer(args []string, dev bool, defaultAddr string) int {
 		return 1
 	}
 	return 0
+}
+
+func runBrowse(args []string) int {
+	fs := flag.NewFlagSet("browse", flag.ContinueOnError)
+	addr := fs.String("addr", "", "listen address (default: the first free port from localhost:4400)")
+	noOpen := fs.Bool("no-open", false, "do not open the browser")
+	all := fs.Bool("all", false, "include files that .gitignore excludes")
+	root, err := parse(fs, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	if root, err = filepath.Abs(root); err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 2
+	}
+	logger := log.New(os.Stderr, "wavemark ", log.Ltime)
+	th, err := theme.New()
+	if err != nil {
+		logger.Printf("error: %v", err)
+		return 1
+	}
+	srv, err := server.NewWith(server.Options{
+		Root:  root,
+		Dev:   true,
+		Theme: th,
+		Build: func(*site.Site) (*site.Site, error) {
+			return browse.Build(browse.Options{Root: root, Theme: th, All: *all, Dev: true})
+		},
+		SkipDir: browse.SkipDir,
+		Ignore:  func(rel string) bool { return !browse.Relevant(rel) },
+		NoLLMS:  true,
+	}, logger)
+	if err != nil {
+		logger.Printf("error: %v", err)
+		return 1
+	}
+	ln, err := listenBrowse(*addr)
+	if err != nil {
+		logger.Printf("error: %v", err)
+		return 1
+	}
+	url := "http://" + displayAddr(ln.Addr())
+	logger.Printf("%d Markdown files in %s", len(srv.Site().Pages), root)
+	if host, _, _ := net.SplitHostPort(ln.Addr().String()); host != "127.0.0.1" && host != "::1" {
+		logger.Printf("warning: listening on every network interface; anyone who can reach this machine can read these files")
+	}
+	logger.Printf("browsing at %s (Ctrl+C to stop)", url)
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	go func() {
+		if err := srv.Watch(ctx); err != nil {
+			logger.Printf("watcher disabled: %v", err)
+		}
+	}()
+	if !*noOpen {
+		if err := openBrowser(url); err != nil {
+			logger.Printf("open %s in your browser", url)
+		}
+	}
+	if err := srv.Serve(ctx, ln); err != nil {
+		logger.Printf("error: %v", err)
+		return 1
+	}
+	return 0
+}
+
+// listenBrowse listens on addr or, by default, on the first free port from
+// 4400 on the loopback interface: the files stay private to this machine.
+func listenBrowse(addr string) (net.Listener, error) {
+	if addr != "" {
+		if strings.HasPrefix(addr, ":") {
+			addr = "127.0.0.1" + addr
+		}
+		return net.Listen("tcp", addr)
+	}
+	var err error
+	for port := 4400; port < 4420; port++ {
+		var ln net.Listener
+		if ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port)); err == nil {
+			return ln, nil
+		}
+	}
+	return nil, fmt.Errorf("no free port between 4400 and 4419 (%w); choose one with --addr", err)
+}
+
+func displayAddr(a net.Addr) string {
+	host, port, err := net.SplitHostPort(a.String())
+	if err != nil {
+		return a.String()
+	}
+	switch host {
+	case "127.0.0.1", "::1", "", "0.0.0.0", "::":
+		host = "localhost"
+	}
+	return net.JoinHostPort(host, port)
+}
+
+// openBrowser opens url with $BROWSER or the system's default browser.
+func openBrowser(url string) error {
+	var cmd *exec.Cmd
+	if b := strings.Fields(strings.Split(os.Getenv("BROWSER"), string(os.PathListSeparator))[0]); len(b) > 0 {
+		cmd = exec.Command(b[0], append(b[1:], url)...)
+	} else {
+		switch runtime.GOOS {
+		case "darwin":
+			cmd = exec.Command("open", url)
+		case "windows":
+			cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+		default:
+			// Without a display, xdg-open may start a text browser in this
+			// terminal; print the address instead.
+			if os.Getenv("DISPLAY") == "" && os.Getenv("WAYLAND_DISPLAY") == "" {
+				return errors.New("no display")
+			}
+			cmd = exec.Command("xdg-open", url)
+		}
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go func() { _ = cmd.Wait() }()
+	return nil
 }
 
 func runCheck(args []string, out io.Writer) int {

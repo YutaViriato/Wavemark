@@ -28,6 +28,16 @@ wavemark serve my-site             # or run it as a live server
 
 `wavemark spec` prints the complete syntax and component reference.
 
+### Read the Markdown in any project
+
+Agents leave a lot of Markdown behind: `CLAUDE.md`, `AGENTS.md`, plans, specs, notes. Run this in any project to read all of it in the browser:
+
+```bash
+wavemark browse
+```
+
+It opens a page listing every Markdown file (recently changed first, then by folder, with a filter) and renders each one with the Wavemark theme. New and edited files show up while the page is open. The files are plain GitHub Markdown; nothing is validated, and nothing has to be written for Wavemark.
+
 ## For AI agents
 
 Give your agent one sentence:

@@ -30,6 +30,9 @@ type RenderOptions struct {
 	Pages func(dir string) []components.PageInfo
 	// Layout and Lang of the page.
 	Layout, Lang string
+	// Plain renders a document from ParsePlain: indented code, sanitised raw
+	// HTML and GitHub alerts.
+	Plain bool
 }
 
 // Render renders a document body to HTML.
@@ -40,7 +43,7 @@ func Render(doc *Document, opts RenderOptions) (string, error) {
 	}
 	ctx.Layout, ctx.Lang = opts.Layout, opts.Lang
 	nr := &nodeRenderer{ctx: ctx}
-	r := renderer.NewRenderer(renderer.WithNodeRenderers(
+	funcs := []util.PrioritizedValue{
 		util.Prioritized(html.NewRenderer(), 1000),
 		// The align attribute instead of style="", which the CSP blocks.
 		util.Prioritized(extension.NewTableHTMLRenderer(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)), 500),
@@ -48,7 +51,12 @@ func Render(doc *Document, opts RenderOptions) (string, error) {
 		util.Prioritized(extension.NewTaskCheckBoxHTMLRenderer(), 500),
 		util.Prioritized(extension.NewFootnoteHTMLRenderer(), 500),
 		util.Prioritized(nr, 100),
-	))
+	}
+	if opts.Plain {
+		convertAlerts(doc.Root, doc.Source)
+		funcs = append(funcs, util.Prioritized(&plainRenderer{nr: nr, html: &htmlSanitizer{url: ctx.URL}}, 50))
+	}
+	r := renderer.NewRenderer(renderer.WithNodeRenderers(funcs...))
 	var buf bytes.Buffer
 	if err := r.Render(&buf, doc.Source, doc.Root); err != nil {
 		return "", err

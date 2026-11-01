@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -31,6 +32,7 @@ type Server struct {
 	dev   bool
 	theme *theme.Theme
 	log   *log.Logger
+	opts  Options
 
 	site     atomic.Pointer[site.Site]
 	notFound atomic.Pointer[[]byte]
@@ -43,14 +45,47 @@ type Server struct {
 	bootID  string        // changes on every start; dev clients reload when it changes
 }
 
+// Options configures a server that does not serve a Wavemark site, such as
+// the Markdown browser.
+type Options struct {
+	Root  string
+	Dev   bool // live reload and no caching of theme assets
+	Theme *theme.Theme
+	// Build produces a snapshot; prev is the current one (nil on start).
+	Build func(prev *site.Site) (*site.Site, error)
+	// SkipDir reports folders the watcher must not watch (rel is
+	// slash-separated, relative to Root).
+	SkipDir func(rel, name string) bool
+	// Ignore reports changed paths that must not trigger a rebuild.
+	Ignore func(rel string) bool
+	// NoLLMS disables /llms.txt.
+	NoLLMS bool
+}
+
 // New builds the first snapshot. In serve mode (dev=false) it fails when the
 // content has errors, so a broken site never goes live.
 func New(root string, dev bool, logger *log.Logger) (*Server, error) {
-	th, err := theme.New()
-	if err != nil {
-		return nil, err
+	return NewWith(Options{Root: root, Dev: dev}, logger)
+}
+
+// NewWith creates a server from options; empty fields get the defaults of a
+// Wavemark site.
+func NewWith(o Options, logger *log.Logger) (*Server, error) {
+	if o.Theme == nil {
+		th, err := theme.New()
+		if err != nil {
+			return nil, err
+		}
+		o.Theme = th
 	}
-	s := &Server{root: root, dev: dev, theme: th, log: logger, subs: map[chan struct{}]struct{}{}, done: make(chan struct{}), bootID: strconv.FormatInt(time.Now().UnixNano(), 36)}
+	if o.SkipDir == nil {
+		o.SkipDir = func(_, name string) bool { return strings.HasPrefix(name, ".") || name == "node_modules" }
+	}
+	if o.Ignore == nil {
+		o.Ignore = defaultIgnore
+	}
+	root, dev := o.Root, o.Dev
+	s := &Server{root: root, dev: dev, theme: o.Theme, log: logger, opts: o, subs: map[chan struct{}]struct{}{}, done: make(chan struct{}), bootID: strconv.FormatInt(time.Now().UnixNano(), 36)}
 	st, err := s.build(nil)
 	if err != nil {
 		return nil, err
@@ -71,6 +106,9 @@ func (e *ContentError) Error() string {
 }
 
 func (s *Server) build(prev *site.Site) (*site.Site, error) {
+	if s.opts.Build != nil {
+		return s.opts.Build(prev)
+	}
 	opts := theme.Options{Dev: s.dev}
 	return site.Build(site.Options{
 		Root: s.root,
@@ -115,6 +153,9 @@ func (s *Server) Rebuild() {
 		return
 	}
 	s.swap(st)
+	if prev != nil && st.Version != "" && st.Version == prev.Version {
+		return // nothing visible changed; open pages keep their scroll and state
+	}
 	errs, warns := diag.Count(st.Diags)
 	s.log.Printf("rebuilt in %s · %d pages · %d error(s) · %d warning(s)", time.Since(start).Round(time.Millisecond), len(st.Pages), errs, warns)
 	for _, d := range st.Diags {
@@ -139,7 +180,7 @@ func (s *Server) Watch(ctx context.Context) error {
 		return err
 	}
 	defer w.Close()
-	if err := addTree(w, s.root); err != nil {
+	if err := s.addTree(w, s.root); err != nil {
 		return err
 	}
 	var timer *time.Timer
@@ -152,12 +193,17 @@ func (s *Server) Watch(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			if ignoredPath(s.root, ev.Name) {
+			rel, err := filepath.Rel(s.root, ev.Name)
+			if err != nil {
+				continue
+			}
+			rel = filepath.ToSlash(rel)
+			if s.skipped(rel) || s.opts.Ignore(rel) {
 				continue
 			}
 			if ev.Has(fsnotify.Create) {
 				if fi, err := os.Lstat(ev.Name); err == nil && fi.IsDir() {
-					_ = addTree(w, ev.Name)
+					_ = s.addTree(w, ev.Name)
 				}
 			}
 			if timer != nil {
@@ -180,34 +226,40 @@ func (s *Server) Watch(ctx context.Context) error {
 	}
 }
 
-func addTree(w *fsnotify.Watcher, dir string) error {
+func (s *Server) addTree(w *fsnotify.Watcher, dir string) error {
 	return filepath.WalkDir(dir, func(p string, d os.DirEntry, err error) error {
-		if err != nil {
+		if err != nil || !d.IsDir() {
 			return nil
 		}
-		if !d.IsDir() {
-			return nil
+		if p != s.root {
+			rel, _ := filepath.Rel(s.root, p)
+			if s.opts.SkipDir(filepath.ToSlash(rel), d.Name()) {
+				return filepath.SkipDir
+			}
 		}
-		if p != dir && (strings.HasPrefix(d.Name(), ".") || d.Name() == "node_modules") {
+		if err := w.Add(p); err != nil {
+			s.log.Printf("watcher: %s: %v", p, err)
 			return filepath.SkipDir
 		}
-		return w.Add(p)
+		return nil
 	})
 }
 
-// ignoredPath filters editor and VCS noise so saves trigger one rebuild.
-func ignoredPath(root, p string) bool {
-	rel, err := filepath.Rel(root, p)
-	if err != nil {
-		return true
-	}
-	for _, part := range strings.Split(filepath.ToSlash(rel), "/") {
-		if strings.HasPrefix(part, ".") || part == "node_modules" {
+// skipped reports whether a path is inside a folder the watcher skips.
+func (s *Server) skipped(rel string) bool {
+	parts := strings.Split(rel, "/")
+	for i := range parts[:len(parts)-1] {
+		if s.opts.SkipDir(strings.Join(parts[:i+1], "/"), parts[i]) {
 			return true
 		}
 	}
-	base := filepath.Base(p)
-	return strings.HasSuffix(base, "~") || strings.HasSuffix(base, ".swp") || strings.HasSuffix(base, ".tmp") || strings.HasPrefix(base, "#")
+	return false
+}
+
+// defaultIgnore filters editor and VCS noise so saves trigger one rebuild.
+func defaultIgnore(rel string) bool {
+	base := path.Base(rel)
+	return strings.HasPrefix(base, ".") || strings.HasSuffix(base, "~") || strings.HasSuffix(base, ".swp") || strings.HasSuffix(base, ".tmp") || strings.HasPrefix(base, "#")
 }
 
 func (s *Server) subscribe() chan struct{} {
@@ -254,11 +306,19 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	clean := path.Clean(p)
 	st := s.site.Load()
 
+	if pg, ok := st.ByRaw[clean]; ok && !pg.Unpublished {
+		ctype := "text/markdown; charset=utf-8"
+		if strings.HasPrefix(clean, theme.AssetPrefix) {
+			ctype = "text/plain; charset=utf-8" // the browser's "view source" shows it as text
+		}
+		serveBytes(w, r, ctype, "no-cache", pg.Source)
+		return
+	}
 	if strings.HasPrefix(clean, theme.AssetPrefix) {
 		s.serveRuntime(w, r, strings.TrimPrefix(clean, theme.AssetPrefix))
 		return
 	}
-	if clean == "/llms.txt" {
+	if clean == "/llms.txt" && !s.opts.NoLLMS {
 		serveBytes(w, r, "text/plain; charset=utf-8", "no-cache", st.LLMSTxt())
 		return
 	}
@@ -268,10 +328,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, clean, http.StatusMovedPermanently)
 			return
 		}
-	}
-	if pg, ok := st.ByRaw[clean]; ok && !pg.Unpublished {
-		serveBytes(w, r, "text/markdown; charset=utf-8", "no-cache", pg.Source)
-		return
 	}
 	if pg, ok := st.ByRoute[clean]; ok && pg.HTML != nil {
 		if match := r.Header.Get("If-None-Match"); match != "" && match == pg.ETag {
@@ -389,14 +445,22 @@ func (s *Server) serveEvents(w http.ResponseWriter, r *http.Request) {
 
 // ListenAndServe serves until ctx is cancelled, then shuts down gracefully.
 func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+	return s.Serve(ctx, ln)
+}
+
+// Serve serves on ln until ctx is cancelled, then shuts down gracefully.
+func (s *Server) Serve(ctx context.Context, ln net.Listener) error {
 	srv := &http.Server{
-		Addr:              addr,
 		Handler:           s,
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
 	errc := make(chan error, 1)
-	go func() { errc <- srv.ListenAndServe() }()
+	go func() { errc <- srv.Serve(ln) }()
 	select {
 	case err := <-errc:
 		if errors.Is(err, http.ErrServerClosed) {

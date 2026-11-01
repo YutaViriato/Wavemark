@@ -15,6 +15,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/YutaViriato/Wavemark/internal/components"
 	"github.com/YutaViriato/Wavemark/internal/diag"
@@ -45,8 +46,11 @@ type Theme struct {
 	navMu   sync.Mutex
 	navSite *site.Site
 	navHTML string
-	assets  map[string]*Asset // by name, e.g. "wavemark.css"
-	byURL   map[string]*Asset // by URL path after AssetPrefix, e.g. "3f2a…/wavemark.css"
+	// The file tree of 'wavemark browse', cached the same way.
+	fileNavSite *site.Site
+	fileNavHTML string
+	assets      map[string]*Asset // by name, e.g. "wavemark.css"
+	byURL       map[string]*Asset // by URL path after AssetPrefix, e.g. "3f2a…/wavemark.css"
 }
 
 // New loads the embedded theme.
@@ -94,7 +98,15 @@ func New() (*Theme, error) {
 		"icon":  icons.HTML,
 		"add":   func(a, b int) int { return a + b },
 		"sub":   func(a, b int) int { return a - b },
-		"t":     func(string) string { return "" }, // replaced per render
+		"ago":   Ago,
+		"iso":   func(t time.Time) string { return t.Format(time.RFC3339) },
+		"stamp": func(t time.Time) string { return t.Format("Jan 2, 2006 15:04") },
+		"lower": strings.ToLower,
+		"when":  func(f *FileView, now time.Time) whenView { return whenView{f.Modified, now} },
+		"readtime": func(words int) string {
+			return fmt.Sprintf("%d min read", max(1, (words+115)/230))
+		},
+		"t": func(string) string { return "" }, // replaced per render
 		"activeTop": func(p *site.Page, href string) bool {
 			if p == nil || href == "" || !strings.HasPrefix(href, "/") {
 				return false
@@ -228,6 +240,10 @@ func (t *Theme) data(s *site.Site, p *site.Page, opts Options) pageData {
 }
 
 func (t *Theme) execute(name string, s *site.Site, d pageData) ([]byte, error) {
+	return t.executeAny(name, s, d)
+}
+
+func (t *Theme) executeAny(name string, s *site.Site, d any) ([]byte, error) {
 	tmpl, err := t.forLang(s.Config.Lang, s.T)
 	if err != nil {
 		return nil, err

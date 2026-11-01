@@ -45,7 +45,11 @@ type Site struct {
 	NotFound *Page
 	Diags    []diag.Diagnostic
 	Built    time.Time
-	T        func(string) string
+	// Version identifies the visible content of the snapshot when the
+	// builder can compute it cheaply; the server skips reloads when it does
+	// not change. Empty means unknown (always reload).
+	Version string
+	T       func(string) string
 
 	byRel    map[string]*Page
 	dirs     map[string]bool

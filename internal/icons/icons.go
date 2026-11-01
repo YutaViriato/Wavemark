@@ -28,6 +28,9 @@ var paths = map[string]string{
 	"menu":          `<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>`,
 	"x":             `<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`,
 	"link":          `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,
+	"folder":        `<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>`,
+	"search":        `<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>`,
+	"clock":         `<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>`,
 	"file-text":     `<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>`,
 }
 

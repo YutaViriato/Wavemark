@@ -1,0 +1,110 @@
+{{define "browse-sidebar"}}<aside class="wm-sidebar" id="wm-sidebar" data-wm-sidebar>
+    <a class="wm-nav__link wm-nav__home" href="/"{{if and .Listing (not .Listing.Path)}} aria-current="page"{{end}}>{{icon "folder"}}<span>All files</span></a>
+    <nav class="wm-nav wm-nav--files" aria-label="Files">{{.Nav}}</nav>
+  </aside>{{end}}
+
+{{define "browse-crumbs"}}{{if .Page.Crumbs}}<nav class="wm-crumbs" aria-label="Breadcrumb"><ol>
+        {{range .Page.Crumbs}}<li>{{if .Route}}<a href="{{.Route}}">{{.Title}}</a>{{else}}<span>{{.Title}}</span>{{end}}{{icon "chevron-right"}}</li>{{end}}
+      </ol></nav>{{end}}{{end}}
+
+{{define "browse-when"}}<time datetime="{{iso .Modified}}" title="{{stamp .Modified}}" data-wm-ago>{{ago .Modified $.Now}}</time>{{end}}
+
+{{define "browse-file"}}{{template "head" .}}
+<body>
+{{template "header" .}}
+<div class="wm-shell{{if not .ShowTOC}} wm-shell--no-toc{{end}}">
+  {{template "browse-sidebar" .}}
+  <main class="wm-main" id="wm-main">
+    <article class="wm-article">
+      {{template "browse-crumbs" .}}
+      <header class="wm-page-header">
+        <h1 class="wm-title">{{.Page.Title}}</h1>
+        <p class="wm-meta wm-filemeta">
+          <code class="wm-filemeta__path">{{.File.Path}}</code>
+          <span class="wm-filemeta__sep" aria-hidden="true">·</span>
+          <time datetime="{{iso .File.Modified}}" title="{{stamp .File.Modified}}" data-wm-ago>{{ago .File.Modified .Now}}</time>
+          <span class="wm-filemeta__sep" aria-hidden="true">·</span>
+          <span>{{readtime .File.Words}}</span>
+          {{range .File.Badges}}<span class="wm-badge wm-badge--{{.Tone}}">{{.Label}}</span>{{end}}
+        </p>
+        {{with .Page.Description}}<p class="wm-lead">{{.}}</p>{{end}}
+      </header>
+      {{with .File.Facts}}<dl class="wm-facts wm-frontmatter" aria-label="Frontmatter">
+        {{range .}}<div><dt>{{.Key}}</dt><dd>{{.Value}}</dd></div>{{end}}
+      </dl>{{end}}
+      {{if .File.TooLarge}}<aside class="wm-callout wm-callout--note" role="note"><span class="wm-callout__icon">{{icon "info"}}</span><div class="wm-callout__body"><p>This file is too large to preview. <a href="{{.RawURL}}">Open the source</a> to read it.</p></div></aside>{{else}}
+      <div class="wm-prose">
+{{.Body}}
+      </div>{{end}}
+      <p class="wm-source"><a href="{{.RawURL}}">{{icon "file-text"}}{{t "viewSource"}}</a></p>
+    </article>
+  </main>
+  {{if .ShowTOC}}<aside class="wm-toc" aria-label="{{t "onThisPage"}}">
+    <p class="wm-toc__title">{{t "onThisPage"}}</p>
+    <ul class="wm-toc__list" data-wm-toc>
+      {{range .Page.TOC}}<li class="wm-toc__item wm-toc__item--{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}
+    </ul>
+  </aside>{{end}}
+</div>
+</body>
+</html>
+{{end}}
+
+{{define "browse-listing"}}{{template "head" .}}
+<body>
+{{template "header" .}}
+<div class="wm-shell wm-shell--no-toc">
+  {{template "browse-sidebar" .}}
+  <main class="wm-main" id="wm-main">
+    <article class="wm-article wm-browse">
+      {{template "browse-crumbs" .}}
+      <header class="wm-page-header">
+        <h1 class="wm-title">{{.Listing.Title}}</h1>
+        <p class="wm-meta">
+          {{.Listing.Files}} Markdown {{if eq .Listing.Files 1}}file{{else}}files{{end}}{{if gt .Listing.Folders 1}} in {{.Listing.Folders}} folders{{end}}{{if not .Listing.Updated.IsZero}}<span class="wm-filemeta__sep" aria-hidden="true"> · </span>updated <time datetime="{{iso .Listing.Updated}}" title="{{stamp .Listing.Updated}}" data-wm-ago>{{ago .Listing.Updated .Now}}</time>{{end}}
+        </p>
+        <p class="wm-browse__root"><code>{{.Listing.Root}}</code></p>
+      </header>
+
+      {{if .Listing.Files}}<div class="wm-browse__filter" data-wm-filter-box hidden>
+        {{icon "search"}}
+        <input type="search" class="wm-browse__input" placeholder="Filter by name, path or text" aria-label="Filter files" data-wm-filter autocomplete="off" spellcheck="false">
+        <kbd class="wm-browse__kbd" aria-hidden="true">/</kbd>
+      </div>{{end}}
+
+      {{with .Listing.Recent}}<section class="wm-browse__section" data-wm-recent>
+        <h2 class="wm-browse__heading">{{icon "clock"}}<span>Recently changed</span></h2>
+        <ul class="wm-browse__recent">
+          {{range .}}<li><a class="wm-browse__card" href="{{.Route}}">
+            <span class="wm-browse__card-title">{{.Title}}</span>
+            <span class="wm-browse__card-path">{{.Path}}</span>
+            <span class="wm-browse__card-time">{{template "browse-when" (when . $.Now)}}</span>
+          </a></li>{{end}}
+        </ul>
+      </section>{{end}}
+
+      {{range .Listing.Groups}}<section class="wm-browse__group" data-wm-group>
+        <h2 class="wm-browse__folder">{{icon "folder"}}{{if .Path}}<a href="{{.Route}}">{{.Path}}/</a>{{else}}<span>{{$.Listing.Title}}/</span>{{end}}<span class="wm-browse__count">{{len .Files}}</span></h2>
+        <ul class="wm-browse__list">
+          {{range .Files}}<li class="wm-browse__item" data-wm-entry data-search="{{lower .Path}} {{lower .Title}} {{lower .Summary}}">
+            <a class="wm-browse__row" href="{{.Route}}">
+              <span class="wm-browse__icon">{{icon "file-text"}}</span>
+              <span class="wm-browse__main">
+                <span class="wm-browse__title"><span>{{.Title}}</span>{{range .Badges}}<span class="wm-badge wm-badge--{{.Tone}}">{{.Label}}</span>{{end}}</span>
+                {{if ne .Title .Name}}<span class="wm-browse__name">{{.Name}}</span>{{end}}
+                {{with .Summary}}<span class="wm-browse__summary">{{.}}</span>{{end}}
+              </span>
+              <span class="wm-browse__when">{{template "browse-when" (when . $.Now)}}<span>{{readtime .Words}}</span></span>
+            </a>
+          </li>{{end}}
+        </ul>
+      </section>{{else}}
+      <aside class="wm-callout wm-callout--note" role="note"><span class="wm-callout__icon">{{icon "info"}}</span><div class="wm-callout__body"><p class="wm-callout__title">No Markdown files yet</p><p>Files ending in <code>.md</code> appear here as soon as they are written. This page updates by itself.</p></div></aside>
+      {{end}}
+      <p class="wm-browse__none" data-wm-filter-empty hidden>No files match <strong data-wm-filter-term></strong>.</p>
+    </article>
+  </main>
+</div>
+</body>
+</html>
+{{end}}
