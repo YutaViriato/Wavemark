@@ -49,3 +49,7 @@ go test ./...
 ```
 
 See [CLAUDE.md](CLAUDE.md) for the design decisions and architecture.
+
+## License
+
+Wavemark is released under the [MIT License](LICENSE). The bundled fonts (Hanken Grotesk, Newsreader and JetBrains Mono) are under the SIL Open Font License; their license texts are in [`internal/theme/assets/fonts/`](internal/theme/assets/fonts/).
