@@ -1,0 +1,8 @@
+title: {{TITLE}}
+description: A site made with Wavemark.
+lang: en
+nav:
+  - label: Getting started
+    href: /getting-started
+footer:
+  text: Made with Wavemark

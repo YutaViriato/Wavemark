@@ -73,12 +73,13 @@ func New() (*Theme, error) {
 	if err != nil {
 		return nil, err
 	}
-	// CSS references fonts by name; rewrite to hashed URLs.
+	// CSS references fonts by name; rewrite to hashed URLs. They are relative
+	// (../<hash>/fonts/x.woff2) so the CSS works under any base path.
 	if css := t.assets["wavemark.css"]; css != nil {
 		out := string(css.Data)
 		for name, a := range t.assets {
 			if strings.HasPrefix(name, "fonts/") {
-				out = strings.ReplaceAll(out, "url("+name+")", "url("+AssetPrefix+a.Hash+"/"+name+")")
+				out = strings.ReplaceAll(out, "url("+name+")", "url(../"+a.Hash+"/"+name+")")
 			}
 		}
 		delete(t.byURL, css.Hash+"/"+css.Name)
@@ -135,6 +136,10 @@ func (t *Theme) URL(name string) string {
 	}
 	return AssetPrefix + a.Hash + "/" + name
 }
+
+// Assets returns every embedded asset keyed by its URL path after
+// AssetPrefix, for static export.
+func (t *Theme) Assets() map[string]*Asset { return t.byURL }
 
 // Lookup finds an asset by the URL path after AssetPrefix.
 func (t *Theme) Lookup(p string) (*Asset, bool) {

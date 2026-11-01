@@ -1,35 +1,53 @@
 ---
 title: Installation
-description: Build the binary and serve your first folder in under a minute.
+description: Install the binary with one line and serve your first folder.
 ---
 
-Wavemark is a single binary written in Go. The theme, fonts and scripts are embedded in it, so there is nothing else to install on the server.
+Wavemark is a single binary. The theme, fonts and scripts are embedded in it, so there is nothing else to install.
 
-## Requirements
+## Install
 
-- Go 1.27 or newer, only to build it.
-- Linux, macOS or Windows.
+<Tabs>
+<Tab title="Linux and macOS">
+```bash
+curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+```
 
-## Build
+The binary goes to `~/.local/bin`. If that folder is not on your `PATH`, the script prints the line to add.
+</Tab>
+<Tab title="Windows">
+```powershell
+irm https://yutaviriato.github.io/Wavemark/install.ps1 | iex
+```
+
+The binary goes to `%LOCALAPPDATA%\wavemark`, which is added to your user `PATH`.
+</Tab>
+<Tab title="Manual">
+Download the archive for your system from [GitHub Releases](https://github.com/YutaViriato/Wavemark/releases), check it against `checksums.txt` and put `wavemark` anywhere on your `PATH`.
+</Tab>
+</Tabs>
+
+Both scripts verify the download's checksum. Set `WAVEMARK_VERSION=v0.1.0` to pin a version, or `WAVEMARK_INSTALL_DIR` to choose the folder. Running the script again upgrades Wavemark.
+
+## Start a site
 
 <Steps>
-<Step title="Clone the repository">
+<Step title="Create it">
 ```bash
-git clone https://github.com/YutaViriato/Wavemark.git
-cd Wavemark
+wavemark init my-site
 ```
 </Step>
-<Step title="Build the binary">
+<Step title="Preview it">
 ```bash
-go build -o bin/wavemark ./cmd/wavemark
-```
-</Step>
-<Step title="Serve a folder">
-```bash
-./bin/wavemark dev site
+wavemark dev my-site
 ```
 
-Open `http://localhost:4321`. Edit any file in `site/` and the page reloads by itself.
+Open `http://localhost:4321`. Edit any file in `my-site/` and the page reloads by itself.
+</Step>
+<Step title="Check it">
+```bash
+wavemark check my-site
+```
 </Step>
 </Steps>
 
@@ -38,22 +56,25 @@ Open `http://localhost:4321`. Edit any file in `site/` and the page reloads by i
 <Tabs>
 <Tab title="dev">
 `wavemark dev` reloads the browser on every change and shows each page's errors in an overlay. Pages with errors stay visible so you can see the problem.
-
-```bash
-wavemark dev site --addr :4321
-```
+</Tab>
+<Tab title="build">
+`wavemark build` writes the site as static HTML. It refuses to write anything when the content has errors.
 </Tab>
 <Tab title="serve">
-`wavemark serve` only starts when the content has no errors. Once it is up, a change with errors does not take the site down: each affected page keeps its last valid version.
-
-```bash
-wavemark serve site --addr :8080
-```
+`wavemark serve` runs the site as a live server. It only starts when the content has no errors, and a later change with errors does not take a page down: the page keeps its last valid version.
 </Tab>
 </Tabs>
 
-<Warning title="Behind a proxy">
-`serve` does not terminate TLS. In production, put it behind a reverse proxy such as Caddy or nginx. See [Deployment](./deploy.md).
-</Warning>
+See [Deployment](./deploy.md) for publishing.
+
+## Build from source
+
+You need Go 1.27 or newer.
+
+```bash
+git clone https://github.com/YutaViriato/Wavemark.git
+cd Wavemark
+go build -o bin/wavemark ./cmd/wavemark
+```
 
 Next: [write your first page](./first-page.md).

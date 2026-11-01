@@ -61,7 +61,7 @@ func TestAssetsAreHashed(t *testing.T) {
 		t.Fatalf("url: %s", css)
 	}
 	a, ok := th.Lookup(strings.TrimPrefix(css, AssetPrefix))
-	if !ok || !strings.Contains(string(a.Data), AssetPrefix) {
+	if !ok || !strings.Contains(string(a.Data), "url(../") {
 		t.Error("the CSS should point to the hashed fonts")
 	}
 }

@@ -7,7 +7,7 @@ layout: landing
 <Hero eyebrow="Wavemark" title="Markdown that becomes a site while you write" highlight="while you write">
 One binary, a folder of `.md` files and no build step. Made for long-form documentation written by people and by agents.
 
-<Button href="./guide/install.md" label="Get started" />
+<Button href="./install-wavemark.md" label="Install" />
 <Button href="./reference/components.md" label="See the components" variant="secondary" />
 </Hero>
 
@@ -26,9 +26,9 @@ Cards, tabs, steps and callouts as JSX-style tags, with no JavaScript in your co
 </Columns>
 
 <Columns cols={4}>
-<Stat value="1" label="binary, with theme, fonts and scripts embedded" />
-<Stat value="0" label="build steps between saving and publishing" />
-<Stat value="~0.5 s" label="to rebuild 600 pages" />
+<Stat value="1" label="line to install, on Linux, macOS or Windows" />
+<Stat value="0" label="dependencies: theme, fonts and scripts live in the binary" />
+<Stat value="~0.5 s" label="to rebuild 600 pages after a save" />
 <Stat value="29" label="components, each validated by a schema" />
 </Columns>
 
@@ -42,14 +42,18 @@ Cards, tabs, steps and callouts as JSX-style tags, with no JavaScript in your co
 </Flow>
 
 <CodeGroup>
-```bash title="Development"
-wavemark dev site
+```bash title="Install"
+curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
 ```
-```bash title="Validation"
-wavemark check site --json
+```bash title="Start"
+wavemark init my-site
+wavemark dev my-site
 ```
-```bash title="Production"
-wavemark serve site --addr :8080
+```bash title="Check"
+wavemark check my-site --json
+```
+```bash title="Publish"
+wavemark build my-site --out dist
 ```
 </CodeGroup>
 
@@ -66,7 +70,7 @@ If an agent cannot see the page, every mistake has to exist as text: the file, t
 <Section tone="oat" align="center">
 ## Start with a folder
 
-Create a `.md` file, run `wavemark dev` and open your browser.
+One line to install, one command to start a site.
 
-<Button href="./guide/install.md" label="Install Wavemark" />
+<Button href="./install-wavemark.md" label="Install Wavemark" />
 </Section>

@@ -11,23 +11,36 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime/debug"
 	"syscall"
 
 	"github.com/YutaViriato/Wavemark/internal/diag"
+	"github.com/YutaViriato/Wavemark/internal/export"
+	"github.com/YutaViriato/Wavemark/internal/scaffold"
 	"github.com/YutaViriato/Wavemark/internal/server"
 	"github.com/YutaViriato/Wavemark/internal/site"
 	"github.com/YutaViriato/Wavemark/internal/spec"
+	"github.com/YutaViriato/Wavemark/internal/theme"
 )
 
-const usage = `wavemark serves a folder of Markdown files as a website.
+// version is set at release time with -ldflags "-X main.version=v1.2.3".
+var version = "dev"
+
+const usage = `wavemark turns a folder of Markdown files into a website.
 
 Usage:
-  wavemark dev   [folder] [--addr :4321]   development server (live reload, errors shown on the page)
-  wavemark serve [folder] [--addr :8080]   production server (refuses to start with errors; keeps the last valid version)
-  wavemark check [folder] [--json]         validate the content; exits with status 1 if there are errors
-  wavemark spec  [--json]                  syntax and component reference for authors
+  wavemark init  [folder]                   create a starter site
+  wavemark dev   [folder] [--addr :4321]    preview with live reload; errors show on the page
+  wavemark check [folder] [--json]          validate; exits with status 1 if there are errors
+  wavemark build [folder] [--out dist] [--base /path]
+                                            write static HTML for GitHub Pages or any web server
+  wavemark serve [folder] [--addr :8080]    run the site as a production server
+  wavemark spec  [--json]                   syntax and component reference for authors
+  wavemark version                          print the version
 
 The default folder is the current directory.
+Docs: https://github.com/YutaViriato/Wavemark
 `
 
 func main() {
@@ -38,14 +51,20 @@ func main() {
 	cmd, args := os.Args[1], os.Args[2:]
 	var code int
 	switch cmd {
+	case "init":
+		code = runInit(args, os.Stdout)
 	case "dev":
 		code = runServer(args, true, ":4321")
 	case "serve":
 		code = runServer(args, false, ":8080")
 	case "check":
 		code = runCheck(args, os.Stdout)
+	case "build":
+		code = runBuild(args, os.Stdout)
 	case "spec":
 		code = runSpec(args, os.Stdout)
+	case "version", "--version", "-v":
+		fmt.Println("wavemark", currentVersion())
 	case "help", "-h", "--help":
 		fmt.Print(usage)
 	default:
@@ -53,6 +72,16 @@ func main() {
 		code = 2
 	}
 	os.Exit(code)
+}
+
+func currentVersion() string {
+	if version != "dev" {
+		return version
+	}
+	if bi, ok := debug.ReadBuildInfo(); ok && bi.Main.Version != "" && bi.Main.Version != "(devel)" {
+		return bi.Main.Version
+	}
+	return version
 }
 
 // parse handles "[folder] [flags]" in any order.
@@ -75,6 +104,25 @@ func parse(fs *flag.FlagSet, args []string) (string, error) {
 		return positional[0], nil
 	}
 	return "", fmt.Errorf("expected one folder, got %d arguments", len(positional))
+}
+
+func runInit(args []string, out io.Writer) int {
+	fs := flag.NewFlagSet("init", flag.ContinueOnError)
+	dir, err := parse(fs, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	files, err := scaffold.Init(dir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	for _, f := range files {
+		fmt.Fprintln(out, "created", filepath.Join(dir, f))
+	}
+	fmt.Fprintf(out, "\nNext:\n  wavemark dev %s      preview it\n  wavemark spec        read the syntax reference\n  wavemark check %s    validate before publishing\n", dir, dir)
+	return 0
 }
 
 func runServer(args []string, dev bool, defaultAddr string) int {
@@ -160,6 +208,52 @@ func runCheck(args []string, out io.Writer) int {
 	if errs > 0 {
 		return 1
 	}
+	return 0
+}
+
+func runBuild(args []string, out io.Writer) int {
+	fs := flag.NewFlagSet("build", flag.ContinueOnError)
+	outDir := fs.String("out", "dist", "output folder")
+	base := fs.String("base", "", "URL path the site is published under, e.g. /my-repo (default: the path of baseURL in wavemark.yaml)")
+	root, err := parse(fs, args)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 2
+	}
+	th, err := theme.New()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	st, err := site.Build(site.Options{Root: root, Render: func(s *site.Site, p *site.Page) ([]byte, error) {
+		return th.RenderPage(s, p, theme.Options{})
+	}})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 2
+	}
+	if diag.HasErrors(st.Diags) {
+		printDiags(os.Stderr, st.Diags)
+		n, _ := diag.Count(st.Diags)
+		fmt.Fprintf(os.Stderr, "error: the content has %d error(s); nothing was written\n", n)
+		return 1
+	}
+	b := *base
+	if b == "" {
+		b = export.BaseFromURL(st.Config.BaseURL)
+	}
+	res, err := export.Write(st, th, export.Options{Out: *outDir, Base: b})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		return 1
+	}
+	_, warns := diag.Count(st.Diags)
+	printDiags(out, st.Diags)
+	where := "/"
+	if b != "" {
+		where = b + "/"
+	}
+	fmt.Fprintf(out, "%d pages · %d files · %d warning(s) → %s (published under %s)\n", res.Pages, res.Files, warns, res.Out, where)
 	return 0
 }
 
