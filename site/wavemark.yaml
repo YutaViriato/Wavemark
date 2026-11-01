@@ -1,0 +1,12 @@
+title: Wavemark
+description: Runtime que transforma uma pasta de Markdown em site, com a identidade visual da Anthropic.
+lang: pt-BR
+logo:
+  text: Wavemark Docs
+nav:
+  - label: Guia
+    href: /guia
+  - label: Referência
+    href: /referencia/componentes
+  - label: Para agentes
+    href: /agentes

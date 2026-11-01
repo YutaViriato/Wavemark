@@ -1,0 +1,110 @@
+{{define "head"}}<!doctype html>
+<html lang="{{.Site.Config.Lang}}" data-layout="{{.Layout}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.DocTitle}}</title>
+{{with .Description}}<meta name="description" content="{{.}}">{{end}}
+<meta name="generator" content="Wavemark">
+<meta name="color-scheme" content="light dark">
+{{with .RawURL}}<link rel="alternate" type="text/markdown" href="{{.}}">{{end}}
+<link rel="preload" href="{{asset "fonts/HankenGrotesk-normal-latin.woff2"}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{asset "fonts/Newsreader-normal-latin.woff2"}}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{asset "wavemark.css"}}">
+{{if .CustomFonts}}<link rel="stylesheet" href="/_wavemark/site-fonts.css?v={{.CustomFonts}}">{{end}}
+<script src="{{asset "theme.js"}}"></script>
+<script src="{{asset "wavemark.js"}}" defer></script>
+{{if .Dev}}<script src="{{asset "dev.js"}}" defer></script>{{end}}
+</head>
+{{end}}
+
+{{define "header"}}
+<a class="wm-skip" href="#wm-main">{{t "skip"}}</a>
+<header class="wm-header">
+  {{if .Sidebar}}<button type="button" class="wm-icon-btn wm-menu-btn" data-wm-menu aria-controls="wm-sidebar" aria-expanded="false" aria-label="{{t "menu"}}">{{icon "menu"}}</button>{{end}}
+  <a class="wm-logo" href="/">{{with .Site.LogoSrc}}<img src="{{.}}" alt="" class="wm-logo__img">{{end}}<span class="wm-logo__text">{{.LogoText}}</span></a>
+  {{if .Site.TopNav}}<nav class="wm-topnav" aria-label="{{t "navigation"}}">
+    {{range .Site.TopNav}}<a class="wm-topnav__link" href="{{.Href}}"{{if activeTop $.Page .Href}} aria-current="page"{{end}}>{{.Label}}</a>{{end}}
+  </nav>{{end}}
+  <div class="wm-header__end">
+    <button type="button" class="wm-icon-btn wm-theme-btn" data-wm-theme hidden aria-label="{{t "theme"}}" data-label-system="{{t "system"}}" data-label-light="{{t "light"}}" data-label-dark="{{t "dark"}}">
+      <span class="wm-theme-btn__system">{{icon "monitor"}}</span><span class="wm-theme-btn__light">{{icon "sun"}}</span><span class="wm-theme-btn__dark">{{icon "moon"}}</span>
+    </button>
+  </div>
+</header>
+{{end}}
+
+{{define "diagnostics"}}{{if and .Dev .Diags}}
+<aside class="wm-devdiag" data-wm-devdiag aria-live="polite">
+  <details open>
+    <summary>{{len .Diags}} {{if eq (len .Diags) 1}}problema{{else}}problemas{{end}} nesta página <span class="wm-devdiag__hint">wavemark dev</span></summary>
+    <ol>
+    {{range .Diags}}<li class="wm-devdiag__item wm-devdiag__item--{{.Severity}}"><code>{{.File}}{{if .Line}}:{{.Line}}{{if .Column}}:{{.Column}}{{end}}{{end}}</code> <strong>{{.Message}}</strong> <span class="wm-devdiag__code">{{.Code}}</span>{{with .Hint}}<p>{{.}}</p>{{end}}</li>{{end}}
+    </ol>
+  </details>
+</aside>{{end}}{{end}}
+
+{{define "docs"}}{{template "head" .}}
+<body>
+{{template "header" .}}
+<div class="wm-shell{{if not .ShowTOC}} wm-shell--no-toc{{end}}">
+  <aside class="wm-sidebar" id="wm-sidebar" data-wm-sidebar>
+    <nav class="wm-nav" aria-label="{{t "navigation"}}">{{.Nav}}</nav>
+  </aside>
+  <main class="wm-main" id="wm-main">
+    <article class="wm-article">
+      {{if .Page.Crumbs}}<nav class="wm-crumbs" aria-label="Breadcrumb"><ol>
+        {{range .Page.Crumbs}}<li>{{if .Route}}<a href="{{.Route}}">{{.Title}}</a>{{else}}<span>{{.Title}}</span>{{end}}{{icon "chevron-right"}}</li>{{end}}
+      </ol></nav>{{end}}
+      <header class="wm-page-header">
+        <h1 class="wm-title">{{.Page.Title}}</h1>
+        {{with .Page.Description}}<p class="wm-lead">{{.}}</p>{{end}}
+      </header>
+      <div class="wm-prose">
+{{.Body}}
+      </div>
+      {{if or .Page.Prev .Page.Next}}<nav class="wm-pager" aria-label="{{t "previous"}} / {{t "next"}}">
+        {{with .Page.Prev}}<a class="wm-pager__link wm-pager__link--prev" href="{{.Route}}" rel="prev"><span class="wm-pager__label">{{icon "arrow-left"}}{{t "previous"}}</span><span class="wm-pager__title">{{.Title}}</span></a>{{else}}<span></span>{{end}}
+        {{with .Page.Next}}<a class="wm-pager__link wm-pager__link--next" href="{{.Route}}" rel="next"><span class="wm-pager__label">{{t "next"}}{{icon "arrow-right"}}</span><span class="wm-pager__title">{{.Title}}</span></a>{{end}}
+      </nav>{{end}}
+      {{with .RawURL}}<p class="wm-source"><a href="{{.}}">{{icon "file-text"}}{{t "viewSource"}}</a></p>{{end}}
+    </article>
+  </main>
+  {{if .ShowTOC}}<aside class="wm-toc" aria-label="{{t "onThisPage"}}">
+    <p class="wm-toc__title">{{t "onThisPage"}}</p>
+    <ul class="wm-toc__list" data-wm-toc>
+      {{range .Page.TOC}}<li class="wm-toc__item wm-toc__item--{{.Level}}"><a href="#{{.ID}}">{{.Text}}</a></li>{{end}}
+    </ul>
+  </aside>{{end}}
+</div>
+{{template "diagnostics" .}}
+</body>
+</html>
+{{end}}
+
+{{define "landing"}}{{template "head" .}}
+<body>
+{{template "header" .}}
+<main class="wm-landing" id="wm-main">
+  <div class="wm-prose wm-prose--landing">
+{{.Body}}
+  </div>
+</main>
+<footer class="wm-footer"><p>{{.Site.Config.Title}}</p></footer>
+{{template "diagnostics" .}}
+</body>
+</html>
+{{end}}
+
+{{define "notfound"}}{{template "head" .}}
+<body>
+{{template "header" .}}
+<main class="wm-landing wm-notfound" id="wm-main">
+  <p class="wm-notfound__code">404</p>
+  <h1 class="wm-notfound__title">{{t "notFound"}}</h1>
+  <p class="wm-notfound__text">{{t "notFoundP"}}</p>
+  <div class="wm-actions"><a class="wm-button wm-button--primary" href="/">{{t "home"}}</a></div>
+</main>
+</body>
+</html>
+{{end}}

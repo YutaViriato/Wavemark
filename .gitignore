@@ -1,0 +1,4 @@
+/bin/
+/.dev.log
+/.e2e*/
+node_modules/

@@ -1,0 +1,13 @@
+{
+  "name": "wavemark-visual",
+  "private": true,
+  "type": "module",
+  "description": "Visual comparison between Wavemark pages and the Anthropic/Claude reference sites.",
+  "scripts": {
+    "compare": "node compare.mjs",
+    "shots": "node shots.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.57.0"
+  }
+}

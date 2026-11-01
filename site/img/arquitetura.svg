@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 832 220" font-family="ui-sans-serif, system-ui, sans-serif" font-size="14">
+  <rect width="832" height="220" fill="#faf9f5"/>
+  <g fill="#fff" stroke="#d1cfc5">
+    <rect x="32" y="70" width="168" height="80" rx="12"/>
+    <rect x="248" y="70" width="168" height="80" rx="12"/>
+    <rect x="464" y="70" width="168" height="80" rx="12"/>
+    <rect x="680" y="70" width="120" height="80" rx="12"/>
+  </g>
+  <g fill="#141413" text-anchor="middle">
+    <text x="116" y="106" font-weight="600">Pasta .md</text>
+    <text x="332" y="106" font-weight="600">Parser</text>
+    <text x="548" y="106" font-weight="600">Snapshot</text>
+    <text x="740" y="106" font-weight="600">HTTP</text>
+  </g>
+  <g fill="#5e5d59" text-anchor="middle" font-size="12">
+    <text x="116" y="128">fsnotify</text>
+    <text x="332" y="128">goldmark + schemas</text>
+    <text x="548" y="128">em memória</text>
+    <text x="740" y="128">ETag</text>
+  </g>
+  <g stroke="#d97757" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M204 110h36m-8-6 8 6-8 6"/>
+    <path d="M420 110h36m-8-6 8 6-8 6"/>
+    <path d="M636 110h36m-8-6 8 6-8 6"/>
+  </g>
+</svg>
