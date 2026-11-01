@@ -1,0 +1,14 @@
+{
+  "name": "wavemark-showreel",
+  "private": true,
+  "type": "module",
+  "description": "A 30-second motion piece that introduces Wavemark, rendered frame by frame from HTML with a synthesized, beat-locked soundtrack.",
+  "scripts": {
+    "assets": "node prepare.mjs",
+    "audio": "node audio/synth.mjs",
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.64.1"
+  }
+}

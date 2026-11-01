@@ -64,6 +64,7 @@ site/                the example site: Wavemark's own documentation, written in 
 design/              measured visual reference
 tools/visual/        Playwright: compare (styles vs. reference), shots, interact, motion
 tools/iconsheet/     icon contact sheet (go run ./tools/iconsheet sheet.html)
+tools/showreel/      the 30 s intro video and its renderer: real pages, icons and a synthesized score
 ```
 
 Dependencies: `github.com/yuin/goldmark`, `github.com/alecthomas/chroma/v2` (server-side highlighting with CSS classes), `github.com/fsnotify/fsnotify`, `gopkg.in/yaml.v3`. Avoid new dependencies without a reason.

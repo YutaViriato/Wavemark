@@ -1,0 +1,182 @@
+[
+  {
+    "name": "site-light.png",
+    "site": "site",
+    "page": "/",
+    "scheme": "light"
+  },
+  {
+    "name": "site_guide_install-light.png",
+    "site": "site",
+    "page": "/guide/install",
+    "scheme": "light"
+  },
+  {
+    "name": "site_reference_components-light.png",
+    "site": "site",
+    "page": "/reference/components",
+    "scheme": "light"
+  },
+  {
+    "name": "site_reference_icons-light.png",
+    "site": "site",
+    "page": "/reference/icons",
+    "scheme": "light"
+  },
+  {
+    "name": "site_blog_hand-drawn-by-code-light.png",
+    "site": "site",
+    "page": "/blog/hand-drawn-by-code",
+    "scheme": "light"
+  },
+  {
+    "name": "site_agents-light.png",
+    "site": "site",
+    "page": "/agents",
+    "scheme": "light"
+  },
+  {
+    "name": "tidepool-light.png",
+    "site": "tidepool",
+    "page": "/",
+    "scheme": "light"
+  },
+  {
+    "name": "tidepool_getting-started_quickstart-light.png",
+    "site": "tidepool",
+    "page": "/getting-started/quickstart",
+    "scheme": "light"
+  },
+  {
+    "name": "tidepool_reference_cli-light.png",
+    "site": "tidepool",
+    "page": "/reference/cli",
+    "scheme": "light"
+  },
+  {
+    "name": "estudio-light.png",
+    "site": "estudio",
+    "page": "/",
+    "scheme": "light"
+  },
+  {
+    "name": "estudio_pesquisa_atencao-light.png",
+    "site": "estudio",
+    "page": "/pesquisa/atencao",
+    "scheme": "light"
+  },
+  {
+    "name": "estudio_produtos_mare-eval-light.png",
+    "site": "estudio",
+    "page": "/produtos/mare-eval",
+    "scheme": "light"
+  },
+  {
+    "name": "blind2-light.png",
+    "site": "blind2",
+    "page": "/",
+    "scheme": "light"
+  },
+  {
+    "name": "blind2_research_sycophancy-under-pressure-light.png",
+    "site": "blind2",
+    "page": "/research/sycophancy-under-pressure",
+    "scheme": "light"
+  },
+  {
+    "name": "blind2_beacon_quickstart-light.png",
+    "site": "blind2",
+    "page": "/beacon/quickstart",
+    "scheme": "light"
+  },
+  {
+    "name": "site-dark.png",
+    "site": "site",
+    "page": "/",
+    "scheme": "dark"
+  },
+  {
+    "name": "site_guide_install-dark.png",
+    "site": "site",
+    "page": "/guide/install",
+    "scheme": "dark"
+  },
+  {
+    "name": "site_reference_components-dark.png",
+    "site": "site",
+    "page": "/reference/components",
+    "scheme": "dark"
+  },
+  {
+    "name": "site_reference_icons-dark.png",
+    "site": "site",
+    "page": "/reference/icons",
+    "scheme": "dark"
+  },
+  {
+    "name": "site_blog_hand-drawn-by-code-dark.png",
+    "site": "site",
+    "page": "/blog/hand-drawn-by-code",
+    "scheme": "dark"
+  },
+  {
+    "name": "site_agents-dark.png",
+    "site": "site",
+    "page": "/agents",
+    "scheme": "dark"
+  },
+  {
+    "name": "tidepool-dark.png",
+    "site": "tidepool",
+    "page": "/",
+    "scheme": "dark"
+  },
+  {
+    "name": "tidepool_getting-started_quickstart-dark.png",
+    "site": "tidepool",
+    "page": "/getting-started/quickstart",
+    "scheme": "dark"
+  },
+  {
+    "name": "tidepool_reference_cli-dark.png",
+    "site": "tidepool",
+    "page": "/reference/cli",
+    "scheme": "dark"
+  },
+  {
+    "name": "estudio-dark.png",
+    "site": "estudio",
+    "page": "/",
+    "scheme": "dark"
+  },
+  {
+    "name": "estudio_pesquisa_atencao-dark.png",
+    "site": "estudio",
+    "page": "/pesquisa/atencao",
+    "scheme": "dark"
+  },
+  {
+    "name": "estudio_produtos_mare-eval-dark.png",
+    "site": "estudio",
+    "page": "/produtos/mare-eval",
+    "scheme": "dark"
+  },
+  {
+    "name": "blind2-dark.png",
+    "site": "blind2",
+    "page": "/",
+    "scheme": "dark"
+  },
+  {
+    "name": "blind2_research_sycophancy-under-pressure-dark.png",
+    "site": "blind2",
+    "page": "/research/sycophancy-under-pressure",
+    "scheme": "dark"
+  },
+  {
+    "name": "blind2_beacon_quickstart-dark.png",
+    "site": "blind2",
+    "page": "/beacon/quickstart",
+    "scheme": "dark"
+  }
+]

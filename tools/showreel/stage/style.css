@@ -1,0 +1,66 @@
+/* Showreel stage. Product components keep the real wavemark.css; this file
+   only adds the stage, the reel's type scale and a few motion helpers. */
+
+*, *::before, *::after { transition: none !important; animation: none !important; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #faf9f5; }
+body { -webkit-font-smoothing: antialiased; text-rendering: geometricPrecision; }
+
+#stage {
+  --ivory: #faf9f5; --ink: #141413; --ink-2: #3d3d3a; --muted: #5e5d59; --muted-2: #87867f;
+  --line: #e8e6dc; --line-dark: #30302e; --clay: #d97757; --clay-2: #c6613f; --oat: #e3dacc;
+  --olive: #788c5d; --sky: #6a9bcc; --fig: #c46686; --cactus: #bcd1ca; --heather: #cbcadb; --error: #bf4d43;
+  position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--ivory); color: var(--ink);
+  font-family: "Hanken Grotesk", sans-serif; contain: strict;
+}
+#cam, #fx { position: absolute; inset: 0; transform-origin: 50% 50%; }
+#fx { pointer-events: none; z-index: 100; }
+
+.sc { position: absolute; inset: 0; overflow: hidden; }
+.abs { position: absolute; left: 0; top: 0; }
+.fill { position: absolute; inset: 0; }
+.center { transform-origin: 50% 50%; }
+
+/* Type scale of the reel */
+.sr-display { font: 400 128px/1 "Newsreader", serif; letter-spacing: -0.028em; font-optical-sizing: auto; white-space: nowrap; }
+.sr-display em { font-style: italic; }
+.sr-label { font: 500 21px/1 "JetBrains Mono", monospace; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.sr-sub { font: 400 32px/1.35 "Hanken Grotesk", sans-serif; letter-spacing: -0.005em; }
+.sr-word, .sr-glyph { display: inline-block; transform-origin: 50% 70%; will-change: auto; }
+.sr-mono { font-family: "JetBrains Mono", monospace; font-variant-ligatures: none; }
+.sr-serif { font-family: "Newsreader", serif; }
+
+/* Hand-drawn art from internal/sketch keeps the product's stroke rules */
+.sr-icon .wm-sketch__ink path { stroke-dasharray: 1 2; }
+.sr-icon svg { width: 100%; height: 100%; overflow: visible; }
+
+/* Windows built from product parts */
+.sr-window { position: absolute; overflow: hidden; background: var(--ivory); border-radius: 18px; box-shadow: 0 1px 0 rgb(20 20 19 / .04), 0 30px 80px -20px rgb(20 20 19 / .28), 0 0 0 1px rgb(20 20 19 / .09); }
+.sr-bar { position: absolute; left: 0; right: 0; top: 0; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 16px; background: #f3f1ea; border-bottom: 1px solid #e3e0d6; }
+.sr-dot { width: 11px; height: 11px; border-radius: 50%; background: #dcd8cc; }
+.sr-url { margin: 0 auto; height: 26px; min-width: 320px; padding: 0 14px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; background: #fbfaf6; border: 1px solid #e3e0d6; font: 500 14px/1 "Hanken Grotesk", sans-serif; color: #5e5d59; }
+.sr-viewport { position: absolute; left: 0; right: 0; top: 44px; bottom: 0; overflow: hidden; }
+.sr-page { position: absolute; left: 0; top: 0; width: 1440px; transform-origin: 0 0; background: var(--wm-bg); }
+
+/* Dark editor and terminal */
+.sr-code { position: absolute; overflow: hidden; border-radius: 18px; background: #1f1e1d; color: #e8e6dc; box-shadow: 0 30px 80px -24px rgb(20 20 19 / .45), 0 0 0 1px rgb(255 255 255 / .06) inset; }
+.sr-code__bar { height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid #30302e; background: #1a1918; }
+.sr-code__tab { display: flex; align-items: center; gap: 9px; height: 30px; padding: 0 12px; border-radius: 8px; background: #262624; font: 500 15px/1 "Hanken Grotesk", sans-serif; color: #e8e6dc; }
+.sr-code__body { padding: 18px 0; font: 400 17px/28px "JetBrains Mono", monospace; font-variant-ligatures: none; white-space: pre; }
+.sr-line { position: relative; display: flex; height: 28px; padding-right: 20px; }
+.sr-ln { flex: none; width: 52px; padding-right: 16px; text-align: right; color: #5e5d59; }
+.sr-src { flex: 1; }
+.sr-hl { position: absolute; inset: 0 0 0 0; background: rgb(217 119 87 / .14); border-left: 3px solid var(--clay); transform-origin: 0 50%; }
+.tk-tag { color: #569cd6; } .tk-attr { color: #9cdcfe; } .tk-str { color: #ce9178; } .tk-pun { color: #808080; }
+.tk-key { color: #9cdcfe; } .tk-h { color: #e8e6dc; font-weight: 600; } .tk-hm { color: #d97757; } .tk-code { color: #d7ba7d; } .tk-dim { color: #9c9a92; }
+.tk-prompt { color: var(--clay); } .tk-ok { color: #a3b88a; } .tk-err { color: #e0786c; }
+
+/* Pills, chips and stickers */
+.sr-pill { display: inline-flex; align-items: center; gap: 10px; height: 54px; padding: 0 24px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font: 500 25px/1 "Hanken Grotesk", sans-serif; color: var(--ink); white-space: nowrap; box-shadow: 0 6px 18px -8px rgb(20 20 19 / .18); }
+.sr-tag { display: inline-flex; align-items: center; height: 48px; padding: 0 18px; border-radius: 12px; background: #141413; color: #faf9f5; font: 500 24px/1 "JetBrains Mono", monospace; white-space: nowrap; box-shadow: 0 10px 24px -10px rgb(20 20 19 / .5); }
+.sr-tag b { color: #e6a68d; font-weight: 500; }
+
+/* Pointer */
+.sr-pointer { position: absolute; left: 0; top: 0; width: 34px; height: 44px; transform-origin: 4px 4px; filter: drop-shadow(0 4px 6px rgb(0 0 0 / .25)); }
+
+/* Grain and vignette */
+.sr-vignette { position: absolute; inset: 0; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 55%, rgb(20 20 19 / .10) 100%); mix-blend-mode: multiply; }
