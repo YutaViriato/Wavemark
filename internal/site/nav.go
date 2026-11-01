@@ -5,6 +5,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/YutaViriato/Wavemark/internal/config"
 	"github.com/YutaViriato/Wavemark/internal/diag"
@@ -129,6 +130,12 @@ func (s *Site) buildNav(pages []*Page, folders map[string]config.Folder) *NavNod
 			if oka {
 				return pa < pb
 			}
+			if f.Sort == "date" {
+				da, db := navDate(a.node), navDate(b.node)
+				if !da.Equal(db) {
+					return da.After(db) // newest first; undated last
+				}
+			}
 			if a.has != b.has {
 				return a.has
 			}
@@ -183,18 +190,28 @@ func (s *Site) flatten(pages []*Page) []*Page {
 }
 
 func (s *Site) linkPrevNext() {
-	var visible []*Page
+	// Neighbours share a layout: docs pages link to docs pages, articles to articles.
+	byLayout := map[string][]*Page{}
 	for _, p := range s.navOrder {
-		if !p.Settings.Hidden && p.Settings.Layout == "docs" {
-			visible = append(visible, p)
+		if !p.Settings.Hidden && (p.Settings.Layout == "docs" || p.Settings.Layout == "article") {
+			byLayout[p.Settings.Layout] = append(byLayout[p.Settings.Layout], p)
 		}
 	}
-	for i, p := range visible {
-		if i > 0 {
-			p.Prev = visible[i-1]
-		}
-		if i+1 < len(visible) {
-			p.Next = visible[i+1]
+	for _, visible := range byLayout {
+		for i, p := range visible {
+			if i > 0 {
+				p.Prev = visible[i-1]
+			}
+			if i+1 < len(visible) {
+				p.Next = visible[i+1]
+			}
 		}
 	}
+}
+
+func navDate(n *NavNode) time.Time {
+	if n.Page != nil {
+		return n.Page.Settings.Date
+	}
+	return time.Time{}
 }

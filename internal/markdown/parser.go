@@ -102,6 +102,10 @@ func (p *componentParser) Open(parent ast.Node, reader text.Reader, pc parser.Co
 	}
 	l, c := st.position(abs)
 
+	if spec := components.Lookup(t.Name); spec != nil && spec.Inline {
+		return nil, parser.NoChildren // e.g. a line starting with <Badge>: let the paragraph take it
+	}
+
 	if t.Closing {
 		st.diags.Errorf(l, c, diag.CodeComponentStray, fmt.Sprintf("Remova </%s> ou adicione <%s> antes dele.", t.Name, t.Name), "</%s> sem um <%s> aberto", t.Name, t.Name)
 		reader.AdvanceToEOL()
@@ -191,7 +195,13 @@ func (p *componentParser) Continue(node ast.Node, reader text.Reader, pc parser.
 		return parser.Continue | parser.HasChildren
 	}
 	trimmed := bytes.TrimSpace(line)
-	if name, ok := closingName(trimmed); ok && p.owns(n, name, pc) {
+	name, isClose := closingName(trimmed)
+	if isClose && !p.anyOpen(name, pc) && !p.inFence(n, pc) {
+		// No open component has this name: let the child parser report a
+		// stray closing tag instead of closing n with a mismatch.
+		isClose = false
+	}
+	if isClose && p.owns(n, name, pc) {
 		if name != n.Name {
 			_, seg := reader.PeekLine()
 			lead := len(line) - len(bytes.TrimLeft(line, " \t"))
@@ -219,6 +229,29 @@ func (p *componentParser) Continue(node ast.Node, reader text.Reader, pc parser.
 		}
 	}
 	return parser.Continue | parser.HasChildren
+}
+
+func (p *componentParser) anyOpen(name string, pc parser.Context) bool {
+	for _, b := range pc.OpenedBlocks() {
+		if c, ok := b.Node.(*components.Node); ok && !c.Closed && c.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (p *componentParser) inFence(n *components.Node, pc parser.Context) bool {
+	blocks := pc.OpenedBlocks()
+	for i, b := range blocks {
+		if b.Node == ast.Node(n) {
+			for _, d := range blocks[i+1:] {
+				if _, ok := d.Node.(*ast.FencedCodeBlock); ok {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 // owns decides whether n should consume a closing tag for name.

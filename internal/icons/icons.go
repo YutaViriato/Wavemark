@@ -17,6 +17,7 @@ var paths = map[string]string{
 	"octagon":       `<path d="M2.586 16.726A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2h6.624a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586z"/><path d="M12 8v4"/><path d="M12 16h.01"/>`,
 	"copy":          `<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>`,
 	"check":         `<path d="M20 6 9 17l-5-5"/>`,
+	"check-circle":  `<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>`,
 	"chevron-down":  `<path d="m6 9 6 6 6-6"/>`,
 	"chevron-right": `<path d="m9 18 6-6-6-6"/>`,
 	"arrow-right":   `<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>`,

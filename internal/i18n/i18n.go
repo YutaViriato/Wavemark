@@ -27,6 +27,9 @@ var tables = map[string]map[string]string{
 		"home":       "Back to home",
 		"viewSource": "View as Markdown",
 		"navigation": "Navigation",
+		"published":  "Published",
+		"author":     "Author",
+		"section":    "Section",
 	},
 	"pt": {
 		"copy":       "Copiar",
@@ -51,6 +54,9 @@ var tables = map[string]map[string]string{
 		"home":       "Voltar ao início",
 		"viewSource": "Ver como Markdown",
 		"navigation": "Navegação",
+		"published":  "Publicado",
+		"author":     "Autor",
+		"section":    "Seção",
 	},
 }
 

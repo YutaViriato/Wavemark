@@ -2,13 +2,26 @@
 (function () {
   "use strict";
   var root = document.documentElement;
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // ---- Tabs (Tabs and CodeGroup) ----
   function initTabs(container) {
     var list = container.querySelector(":scope > .wm-tabs__list, :scope > .wm-code__header > .wm-tabs__list");
     if (!list) return;
     var tabs = Array.prototype.slice.call(list.querySelectorAll('[role="tab"]'));
+    var indicator = list.querySelector(".wm-tabs__indicator");
+    var current = 0;
+    function place() {
+      if (!indicator || !tabs[current] || !tabs[current].offsetWidth) return;
+      var t = tabs[current];
+      indicator.style.width = t.offsetWidth + "px";
+      indicator.style.height = t.offsetHeight + "px";
+      indicator.style.top = t.offsetTop + "px";
+      indicator.style.setProperty("--wm-x", t.offsetLeft + "px");
+      list.setAttribute("data-indicator", "");
+    }
     function select(i, focus) {
+      current = i;
       tabs.forEach(function (tab, j) {
         var on = i === j;
         tab.setAttribute("aria-selected", on ? "true" : "false");
@@ -16,7 +29,14 @@
         var panel = document.getElementById(tab.getAttribute("aria-controls"));
         if (panel) panel.hidden = !on;
       });
+      place();
       if (focus) tabs[i].focus();
+    }
+    if (indicator) {
+      indicator.style.transition = "none";
+      requestAnimationFrame(function () { place(); requestAnimationFrame(function () { indicator.style.transition = ""; }); });
+      window.addEventListener("resize", place);
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
     }
     tabs.forEach(function (tab, i) {
       tab.addEventListener("click", function () { select(i, false); });
@@ -81,7 +101,14 @@
     }
     apply(current);
     themeBtn.hidden = false;
-    themeBtn.addEventListener("click", function () { apply(modes[(modes.indexOf(current) + 1) % modes.length]); });
+    themeBtn.addEventListener("click", function () {
+      var next = modes[(modes.indexOf(current) + 1) % modes.length];
+      themeBtn.removeAttribute("data-animate");
+      void themeBtn.offsetWidth;
+      themeBtn.setAttribute("data-animate", "");
+      if (document.startViewTransition && !reduceMotion) document.startViewTransition(function () { apply(next); });
+      else apply(next);
+    });
   }
 
   // ---- Mobile sidebar ----
@@ -99,6 +126,36 @@
     });
     var active = sidebar.querySelector('[aria-current="page"]');
     if (active && active.scrollIntoView) active.scrollIntoView({ block: "center" });
+  }
+
+  // ---- Scroll reveal ----
+  // Blocks below the fold start "pending" (hidden, offscreen) and appear as
+  // they enter the viewport; blocks visible on load are never hidden.
+  if (!reduceMotion && "IntersectionObserver" in window) {
+    var layout = root.getAttribute("data-layout");
+    var selectors = {
+      landing: ".wm-prose--landing > :not(.wm-hero, .wm-columns, .wm-steps, .wm-section, .wm-pagelist, hr), .wm-section__inner > :not(.wm-columns, .wm-steps, .wm-pagelist), .wm-columns > *, .wm-steps > *, .wm-pagelist > *",
+      article: ".wm-prose--reading > .wm-figure, .wm-prose--reading > .wm-quote, .wm-prose--reading .wm-columns > *, .wm-prose--reading > .wm-steps > *",
+      docs: ".wm-prose .wm-columns > *, .wm-prose .wm-steps > *, .wm-prose > .wm-figure, .wm-prose .wm-pagelist > *"
+    };
+    var els = document.querySelectorAll(selectors[layout] || selectors.docs);
+    var vh = window.innerHeight;
+    var io2 = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.setAttribute("data-wm-reveal", "shown");
+        io2.unobserve(en.target);
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    Array.prototype.forEach.call(els, function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.top < vh && r.bottom > 0) {
+        el.setAttribute("data-wm-reveal", "shown-now");
+      } else {
+        el.setAttribute("data-wm-reveal", "pending");
+        io2.observe(el);
+      }
+    });
   }
 
   // ---- Table of contents: highlight the current section ----

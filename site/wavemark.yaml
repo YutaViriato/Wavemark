@@ -8,5 +8,14 @@ nav:
     href: /guia
   - label: Referência
     href: /referencia/componentes
+  - label: Blog
+    href: /blog
   - label: Para agentes
     href: /agentes
+footer:
+  text: Wavemark · feito com Markdown
+  links:
+    - label: GitHub
+      href: https://github.com/YutaViriato/Wavemark
+    - label: llms.txt
+      href: /llms.txt

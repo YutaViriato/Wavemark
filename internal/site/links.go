@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/YutaViriato/Wavemark/internal/config"
 	"github.com/YutaViriato/Wavemark/internal/diag"
 	"github.com/YutaViriato/Wavemark/internal/markdown"
 )
@@ -92,6 +93,9 @@ func (s *Site) resolve(from *Page, dest string, asset bool) resolution {
 
 	target := s.findPage(clean, strings.HasPrefix(p, "/"))
 	if target == nil {
+		if clean == "llms.txt" {
+			return resolution{href: "/llms.txt"} // served by the runtime
+		}
 		if _, ok := s.Assets["/"+clean]; ok {
 			return resolution{href: "/" + clean + suffix}
 		}
@@ -173,6 +177,12 @@ func (s *Site) checkRefs(p *Page) {
 		return
 	}
 	for _, ref := range p.analysis.Refs {
+		if ref.Type == markdown.RefDir {
+			if _, ok := s.resolveDir(p, ref.Dest); !ok {
+				addDiag(p, diag.Diagnostic{Line: ref.Line, Column: ref.Col, Code: diag.CodeLinkBroken, Message: ref.Where + ": a pasta " + ref.Dest + " não existe", Hint: "Use um caminho de pasta relativo à página, como ./blog, ou absoluto, como /blog."})
+			}
+			continue
+		}
 		r := s.resolve(p, ref.Dest, ref.Type == markdown.RefAsset)
 		if r.ok() {
 			continue
@@ -206,12 +216,15 @@ func looksLikeAsset(dest string) bool {
 
 var rootPage = &Page{dir: "."}
 
-func (s *Site) resolveTopNav(dl *diag.List) []NavLink {
+func (s *Site) resolveLinks(links []config.NavLink, key string, dl *diag.List) []NavLink {
 	var out []NavLink
-	for i, n := range s.Config.Nav {
+	for i, n := range links {
+		if n.Href == "" {
+			continue // reported by config
+		}
 		r := s.resolve(rootPage, n.Href, false)
 		if !r.ok() {
-			dl.Add(diag.Diagnostic{Code: r.code, Message: fmt.Sprintf("nav[%d] (%s): %s", i, n.Label, r.msg), Hint: r.hint})
+			dl.Add(diag.Diagnostic{Code: r.code, Message: fmt.Sprintf("%s[%d] (%s): %s", key, i, n.Label, r.msg), Hint: r.hint})
 			continue
 		}
 		out = append(out, NavLink{Label: n.Label, Href: r.href})

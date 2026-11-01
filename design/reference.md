@@ -70,3 +70,25 @@ Estrutura:
 Acentos: clay `#d97757` (interativo `#c6613f`), olive `#788c5d`, sky `#6a9bcc`, fig `#c46686`, cactus `#bcd1ca`, heather `#cbcadb`, oat `#e3dacc`, erro `#bf4d43`.
 
 Espaçamento: 4, 8, 12, 16, 24, 32, 40, 48, 64, 80, 96, 128. Raios: 4, 8, 12, 16. Easing: `cubic-bezier(.165,.84,.44,1)` (out-quart).
+
+## Layout `article` (anthropic.com/research e /news)
+
+Medido em `anthropic.com/research/claude-think-tool` e `anthropic.com/news/2026-usage-policy-update`:
+
+- Título centralizado: sans peso 700, 32.5px; subtítulo serif 32px logo abaixo.
+- Três colunas a 1440px: capítulos numerados (`01`, `02`… em mono 12px) em x=80 com 198px de largura e bordas entre itens; corpo de 625px centralizado (x=400); fatos (Publicado, Equipe, Tópicos) em x=1148 com 197px.
+- Corpo: serif 16.7px / 25.5px (notícias) ou sans (pesquisa), cor `#141413`. H2 sans 700 26px, margem 48px acima e 24px abaixo. Parágrafos separados por 24px. Links sublinhados na cor do texto.
+
+## Movimento (anthropic.com, claude.com, platform.claude.com)
+
+Extraído dos `@keyframes` e `transition` do CSS dos três sites:
+
+- Curvas: `cubic-bezier(.165,.84,.44,1)` (out-quart) e `cubic-bezier(.19,1,.22,1)` (out-expo).
+- Durações: 0.15 a 0.3s em hover e cor; 0.5 a 0.8s em entradas.
+- Entradas: `word-rise` (translateY .42em), `unblur` (blur 4px → 0) e `fade-in` no anthropic.com; `raise` (translateY 16px) e `fadeUp` no claude.com; `reveal-in` (translateY 4px) na documentação.
+- A documentação usa view transitions e `animation-timeline`; o anthropic.com anima traços com `stroke-dash`.
+- Nada pisca nem fica em loop no conteúdo de leitura.
+
+## Ilustrações
+
+Os ícones de platform.claude.com/docs e claude.com são traço preto grosso (~2px a 48px), cantos levemente irregulares e preenchimento chapado quente (`#e3dacc` oat, `#dedcd1`). As peças grandes do anthropic.com são gravuras e colagens com textura. O Wavemark gera arte própria com o mesmo vocabulário (traço de caneta e preenchimento oat fora de registro), sem copiar nenhuma peça.

@@ -26,11 +26,19 @@ type RenderOptions struct {
 	URL func(dest string) string
 	// T translates interface strings.
 	T func(key string) string
+	// Pages lists the pages of a folder, for <PageList>.
+	Pages func(dir string) []components.PageInfo
+	// Layout and Lang of the page.
+	Layout, Lang string
 }
 
 // Render renders a document body to HTML.
 func Render(doc *Document, opts RenderOptions) (string, error) {
 	ctx := components.NewRenderContext(opts.URL, opts.T)
+	if opts.Pages != nil {
+		ctx.Pages = opts.Pages
+	}
+	ctx.Layout, ctx.Lang = opts.Layout, opts.Lang
 	nr := &nodeRenderer{ctx: ctx}
 	r := renderer.NewRenderer(renderer.WithNodeRenderers(
 		util.Prioritized(html.NewRenderer(), 1000),
@@ -54,6 +62,7 @@ type nodeRenderer struct {
 
 func (r *nodeRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(components.KindComponent, r.component)
+	reg.Register(components.KindInline, r.inline)
 	reg.Register(ast.KindFencedCodeBlock, r.code)
 	reg.Register(ast.KindHeading, r.heading)
 	reg.Register(ast.KindLink, r.link)
@@ -82,7 +91,18 @@ func (r *nodeRenderer) component(w util.BufWriter, src []byte, node ast.Node, en
 		return ast.WalkContinue, nil
 	}
 	n.Spec.Render(w, src, n, entering, r.ctx)
+	if entering && n.Spec.SkipChildren {
+		return ast.WalkSkipChildren, nil
+	}
 	return ast.WalkContinue, nil
+}
+
+func (r *nodeRenderer) inline(w util.BufWriter, _ []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	n := node.(*components.InlineNode)
+	if entering && n.Spec != nil && n.Spec.RenderInline != nil {
+		n.Spec.RenderInline(w, n, r.ctx)
+	}
+	return ast.WalkSkipChildren, nil
 }
 
 var formatter = chromahtml.New(

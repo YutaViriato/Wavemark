@@ -1,6 +1,6 @@
 // Screenshots of Wavemark pages for visual review.
 //
-//   node shots.mjs [--wm http://localhost:4321] [--out shots] [--pages /,/guia] [--scheme light,dark] [--width 1440] [--scroll 0,900]
+//   node shots.mjs [--wm http://localhost:4321] [--out shots] [--pages /,/guia] [--scheme light,dark] [--width 1440] [--scroll 0,900] [--wait 1400]
 import { chromium } from 'playwright';
 import fs from 'node:fs';
 
@@ -14,6 +14,7 @@ const pages = (args.pages || '/,/guia/instalacao,/referencia/componentes').split
 const schemes = (args.scheme || 'light').split(',');
 const width = +(args.width || 1440);
 const scrolls = (args.scroll || '0').split(',').map(Number);
+const wait = +(args.wait || 1400); // let reveal and draw animations finish
 fs.mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();
@@ -29,7 +30,7 @@ for (const scheme of schemes) {
     const name = path === '/' ? 'home' : path.slice(1).replace(/\//g, '_');
     for (const y of scrolls) {
       await page.evaluate((y) => window.scrollTo(0, y), y);
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(wait);
       const file = `${out}/${name}-${scheme}-${width}-${y}.png`;
       await page.screenshot({ path: file });
       console.log(file);

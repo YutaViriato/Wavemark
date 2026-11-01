@@ -34,6 +34,13 @@
 </header>
 {{end}}
 
+{{define "meta"}}{{if or .Date .Page.Settings.Author}}<p class="wm-meta">{{with .Date}}<time datetime="{{.ISO}}">{{.Text}}</time>{{end}}{{if and .Date .Page.Settings.Author}}<span aria-hidden="true"> · </span>{{end}}{{with .Page.Settings.Author}}<span>{{.}}</span>{{end}}</p>{{end}}{{end}}
+
+{{define "footer"}}{{if or .Site.Footer.Text .Site.Footer.Links}}<footer class="wm-footer">
+  {{with .Site.Footer.Text}}<p class="wm-footer__text">{{.}}</p>{{end}}
+  {{with .Site.Footer.Links}}<nav class="wm-footer__links" aria-label="Footer">{{range .}}<a href="{{.Href}}">{{.Label}}</a>{{end}}</nav>{{end}}
+</footer>{{end}}{{end}}
+
 {{define "diagnostics"}}{{if and .Dev .Diags}}
 <aside class="wm-devdiag" data-wm-devdiag aria-live="polite">
   <details open>
@@ -58,6 +65,7 @@
       </ol></nav>{{end}}
       <header class="wm-page-header">
         <h1 class="wm-title">{{.Page.Title}}</h1>
+        {{template "meta" .}}
         {{with .Page.Description}}<p class="wm-lead">{{.}}</p>{{end}}
       </header>
       <div class="wm-prose">
@@ -68,6 +76,7 @@
         {{with .Page.Next}}<a class="wm-pager__link wm-pager__link--next" href="{{.Route}}" rel="next"><span class="wm-pager__label">{{t "next"}}{{icon "arrow-right"}}</span><span class="wm-pager__title">{{.Title}}</span></a>{{end}}
       </nav>{{end}}
       {{with .RawURL}}<p class="wm-source"><a href="{{.}}">{{icon "file-text"}}{{t "viewSource"}}</a></p>{{end}}
+      {{template "footer" .}}
     </article>
   </main>
   {{if .ShowTOC}}<aside class="wm-toc" aria-label="{{t "onThisPage"}}">
@@ -90,7 +99,45 @@
 {{.Body}}
   </div>
 </main>
-<footer class="wm-footer"><p>{{.Site.Config.Title}}</p></footer>
+{{template "footer" .}}
+{{template "diagnostics" .}}
+</body>
+</html>
+{{end}}
+
+{{define "article"}}{{template "head" .}}
+<body>
+{{template "header" .}}
+<main class="wm-reading" id="wm-main">
+  <header class="wm-reading__header">
+    {{if .Page.Crumbs}}<p class="wm-reading__eyebrow">{{(index .Page.Crumbs (sub (len .Page.Crumbs) 1)).Title}}</p>{{end}}
+    <h1 class="wm-reading__title">{{.Page.Title}}</h1>
+    {{with .Page.Description}}<p class="wm-reading__subtitle">{{.}}</p>{{end}}
+  </header>
+  <div class="wm-reading__grid">
+    <aside class="wm-reading__toc" aria-label="{{t "onThisPage"}}">
+      {{if .ShowTOC}}<ol class="wm-chapters" data-wm-toc>
+        {{range $i, $h := .Chapters}}<li class="wm-chapters__item"><a href="#{{$h.ID}}"><span class="wm-chapters__num">{{printf "%02d" (add $i 1)}}</span><span>{{$h.Text}}</span></a></li>{{end}}
+      </ol>{{end}}
+    </aside>
+    <div class="wm-prose wm-prose--reading">
+{{.Body}}
+    </div>
+    <aside class="wm-reading__meta">
+      <dl class="wm-facts">
+        {{with .Date}}<div><dt>{{t "published"}}</dt><dd><time datetime="{{.ISO}}">{{.Text}}</time></dd></div>{{end}}
+        {{with .Page.Settings.Author}}<div><dt>{{t "author"}}</dt><dd>{{.}}</dd></div>{{end}}
+        {{if .Page.Crumbs}}<div><dt>{{t "section"}}</dt><dd>{{with (index .Page.Crumbs (sub (len .Page.Crumbs) 1))}}{{if .Route}}<a href="{{.Route}}">{{.Title}}</a>{{else}}{{.Title}}{{end}}{{end}}</dd></div>{{end}}
+        {{with .RawURL}}<div><dt>Markdown</dt><dd><a href="{{.}}">{{t "viewSource"}}</a></dd></div>{{end}}
+      </dl>
+    </aside>
+  </div>
+  {{if or .Page.Prev .Page.Next}}<nav class="wm-pager wm-pager--reading" aria-label="{{t "previous"}} / {{t "next"}}">
+    {{with .Page.Prev}}<a class="wm-pager__link wm-pager__link--prev" href="{{.Route}}" rel="prev"><span class="wm-pager__label">{{icon "arrow-left"}}{{t "previous"}}</span><span class="wm-pager__title">{{.Title}}</span></a>{{else}}<span></span>{{end}}
+    {{with .Page.Next}}<a class="wm-pager__link wm-pager__link--next" href="{{.Route}}" rel="next"><span class="wm-pager__label">{{t "next"}}{{icon "arrow-right"}}</span><span class="wm-pager__title">{{.Title}}</span></a>{{end}}
+  </nav>{{end}}
+</main>
+{{template "footer" .}}
 {{template "diagnostics" .}}
 </body>
 </html>

@@ -4,8 +4,6 @@
 package markdown
 
 import (
-	"reflect"
-
 	"github.com/YutaViriato/Wavemark/internal/diag"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -49,22 +47,14 @@ func (d *Document) Position(n ast.Node) (int, int) {
 var md = newMarkdown()
 
 func newMarkdown() goldmark.Markdown {
-	codeBlock := reflect.TypeOf(parser.NewCodeBlockParser())
-	var blocks []util.PrioritizedValue
-	for _, v := range parser.DefaultBlockParsers() {
-		// Indented code blocks are disabled: content inside components is
-		// often indented, and only fenced code is allowed.
-		if reflect.TypeOf(v.Value) == codeBlock {
-			continue
-		}
-		blocks = append(blocks, v)
-	}
+	blocks := parser.DefaultBlockParsers()
 	// Before the HTML block parser (900) so capitalised tags are components.
 	blocks = append(blocks, util.Prioritized(&componentParser{}, 850))
 
 	p := parser.NewParser(
 		parser.WithBlockParsers(blocks...),
-		parser.WithInlineParsers(parser.DefaultInlineParsers()...),
+		// Before the raw HTML parser (400) so <Badge> and <Icon /> are components.
+		parser.WithInlineParsers(append(parser.DefaultInlineParsers(), util.Prioritized(&inlineParser{}, 390))...),
 		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
 		parser.WithAutoHeadingID(),
 		parser.WithAttribute(),

@@ -1,6 +1,7 @@
 package markdown
 
 import (
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -67,9 +68,12 @@ func (s *ids) Generate(value []byte, kind ast.NodeKind) []byte {
 
 func (s *ids) Put(value []byte) { s.used[string(value)] = true }
 
-// stripInlineMarkup removes link targets from raw heading text so that
-// "[Guia](./guia.md)" yields "Guia".
+var inlineComponentRe = regexp.MustCompile(`<[A-Z][A-Za-z]*\b[^>]*/>|<([A-Z][A-Za-z]*)\b[^>]*>[^<]*</[A-Z][A-Za-z]*>`)
+
+// stripInlineMarkup removes link targets and inline components from raw
+// heading text so that "[Guia](./guia.md) <Badge>Novo</Badge>" yields "Guia".
 func stripInlineMarkup(s string) string {
+	s = inlineComponentRe.ReplaceAllString(s, "")
 	var b strings.Builder
 	for i := 0; i < len(s); i++ {
 		if s[i] == ']' && i+1 < len(s) && s[i+1] == '(' {

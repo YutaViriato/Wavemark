@@ -26,6 +26,7 @@ type RefType int
 const (
 	RefLink  RefType = iota // must resolve to a page, anchor or external URL
 	RefAsset                // must resolve to a file or external URL
+	RefDir                  // must resolve to a folder of the site
 )
 
 // Ref is a link or asset reference found in a page.
@@ -48,6 +49,10 @@ type Analysis struct {
 
 var voidTagRe = regexp.MustCompile(`(?i)^<\s*(br|hr|wbr)\b`)
 
+// footnoteRefRe finds footnote references left as text, which means the
+// footnote has no definition.
+var footnoteRefRe = regexp.MustCompile(`\[\^[^\]\s]+\]`)
+
 // Analyze validates a parsed body and extracts headings, title and
 // references. When the frontmatter has a title, an H1 in the body is an error.
 func Analyze(doc *Document, layout string, frontmatterTitle bool, diags *diag.List) *Analysis {
@@ -62,17 +67,16 @@ func Analyze(doc *Document, layout string, frontmatterTitle bool, diags *diag.Li
 		switch n := node.(type) {
 		case *components.Node:
 			components.Validate(n, layout, doc.Line, diags)
+			components.Check(&n.Core, diags)
 			checkComponent(doc, n, diags)
-			for _, la := range components.LinkAttrs(n) {
-				t := RefLink
-				if la.Type == components.TAsset {
-					t = RefAsset
-				}
-				a.Refs = append(a.Refs, Ref{Type: t, Dest: la.Attr.Value.(string), Line: la.Attr.Line, Col: la.Attr.Col, Where: fmt.Sprintf("<%s %s>", n.Name, la.Attr.Name)})
-			}
+			a.addRefs(&n.Core)
 			if n.Name == "Hero" && a.HeroTitle == "" {
 				a.HeroTitle = n.Str("title")
 			}
+		case *components.InlineNode:
+			components.ValidateInline(n, diags)
+			components.Check(&n.Core, diags)
+			a.addRefs(&n.Core)
 		case *ast.Heading:
 			if n.Level == 1 {
 				h1s = append(h1s, n)
@@ -89,6 +93,9 @@ func Analyze(doc *Document, layout string, frontmatterTitle bool, diags *diag.Li
 		case *ast.Image:
 			l, c := doc.Position(n)
 			a.Refs = append(a.Refs, Ref{Type: RefAsset, Dest: string(n.Destination), Line: l, Col: c, Where: "imagem"})
+			if strings.TrimSpace(PlainText(n, src)) == "" {
+				diags.Warnf(l, c, diag.CodeAltMissing, "Descreva a imagem entre os colchetes: ![diagrama do fluxo](./fluxo.svg).", "imagem sem texto alternativo")
+			}
 		case *ast.HTMLBlock:
 			var raw []byte
 			if n.Lines().Len() > 0 {
@@ -105,6 +112,14 @@ func Analyze(doc *Document, layout string, frontmatterTitle bool, diags *diag.Li
 			reportHTML(doc, n, raw, false, diags)
 		case *ast.FencedCodeBlock:
 			checkFence(doc, n, diags)
+		case *ast.Paragraph:
+			if m := footnoteRefRe.FindString(PlainText(n, src)); m != "" {
+				l, c := doc.Position(n)
+				diags.Warnf(l, c, diag.CodeLinkBroken, fmt.Sprintf("Defina a nota em uma linha própria: %s: texto da nota.", m), "nota de rodapé %s sem definição", m)
+			}
+		case *ast.CodeBlock:
+			l, _ := doc.Position(n)
+			diags.Errorf(l, 0, diag.CodeIndentedCode, "Use um bloco cercado (```linguagem ... ```). Se era texto, tire a indentação de 4 espaços.", "bloco de código indentado com 4 espaços")
 		}
 		return ast.WalkContinue, nil
 	})
@@ -137,6 +152,19 @@ func Analyze(doc *Document, layout string, frontmatterTitle bool, diags *diag.Li
 	return a
 }
 
+func (a *Analysis) addRefs(c *components.Core) {
+	for _, la := range components.LinkAttrs(c) {
+		t := RefLink
+		switch la.Type {
+		case components.TAsset:
+			t = RefAsset
+		case components.TDir:
+			t = RefDir
+		}
+		a.Refs = append(a.Refs, Ref{Type: t, Dest: la.Attr.Value.(string), Line: la.Attr.Line, Col: la.Attr.Col, Where: fmt.Sprintf("<%s %s>", c.Name, la.Attr.Name)})
+	}
+}
+
 func reportHTML(doc *Document, n ast.Node, raw []byte, block bool, diags *diag.List) {
 	s := strings.TrimSpace(string(raw))
 	if strings.HasPrefix(s, "<!--") {
@@ -151,7 +179,15 @@ func reportHTML(doc *Document, n ast.Node, raw []byte, block bool, diags *diag.L
 	case voidTagRe.MatchString(s):
 		hint = "Para quebra de linha, termine a linha com '\\'. Para novo parágrafo, deixe uma linha em branco."
 	case looksLikeComponent([]byte(s)):
-		hint = "Componentes precisam começar em uma linha própria, sem texto antes da tag."
+		name := strings.TrimLeft(s, "</")
+		if i := strings.IndexAny(name, " \t/>"); i >= 0 {
+			name = name[:i]
+		}
+		if spec := components.Lookup(name); spec != nil && spec.Inline {
+			hint = fmt.Sprintf("Componentes inline abrem e fecham na mesma linha: %s", spec.Example)
+		} else {
+			hint = "Componentes de bloco começam em uma linha própria, sem texto antes da tag."
+		}
 	case strings.HasPrefix(strings.ToLower(s), "<img"):
 		hint = `Use ![alt](src) ou <Figure src="..." alt="..." />.`
 	case strings.HasPrefix(strings.ToLower(s), "<details"):
@@ -174,6 +210,10 @@ func reportHTML(doc *Document, n ast.Node, raw []byte, block bool, diags *diag.L
 func checkFence(doc *Document, n *ast.FencedCodeBlock, diags *diag.List) {
 	fi := components.Fence(n, doc.Source)
 	l, _ := doc.Position(n)
+	switch strings.ToLower(fi.Lang) {
+	case "mermaid", "math", "latex", "katex", "plantuml", "dot", "graphviz":
+		diags.Warnf(l, 0, diag.CodeFenceLang, "Diagramas e fórmulas ainda não são renderizados; o bloco aparece como código. Para diagramas, use uma imagem SVG com <Figure>.", "blocos '%s' aparecem como código, não como diagrama", fi.Lang)
+	}
 	for _, bad := range fi.Bad {
 		diags.Errorf(l, 0, diag.CodeComponentSyntax, "Use a forma ```linguagem title=\"nome\".", "atributos inválidos na cerca de código: %s", bad)
 	}
@@ -186,13 +226,29 @@ func checkFence(doc *Document, n *ast.FencedCodeBlock, diags *diag.List) {
 
 // checkComponent applies rules that need the surrounding tree.
 func checkComponent(doc *Document, n *components.Node, diags *diag.List) {
-	if n.Spec == nil || n.Name != "Card" {
+	if n.Spec == nil {
+		return
+	}
+	if n.Name == "Button" {
+		text := components.TextOf(n, doc.Source)
+		switch {
+		case n.Str("label") == "" && text == "":
+			diags.Errorf(n.Line, n.Col, diag.CodeAttrMissing, "Exemplo: <Button href=\"/guia\" label=\"Começar\" /> ou <Button href=\"/guia\">Começar</Button>", "<Button> precisa de texto: use label ou escreva o texto entre as tags")
+		case n.Str("label") != "" && text != "":
+			diags.Errorf(n.Line, n.Col, diag.CodeAttrValue, "Use label ou o conteúdo, não os dois.", "<Button> tem label e também conteúdo")
+		}
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			if _, ok := c.(*ast.Paragraph); !ok || c.NextSibling() != nil {
+				diags.Errorf(n.Line, n.Col, diag.CodeComponentChild, "O texto do botão é uma linha simples.", "<Button> aceita só uma linha de texto")
+				break
+			}
+		}
+		return
+	}
+	if n.Name != "Card" {
 		return
 	}
 	href := n.Str("href")
-	if n.Str("cta") != "" && href == "" {
-		diags.Errorf(n.Line, n.Col, diag.CodeAttrValue, "Adicione href ou remova cta.", "'cta' em <Card> exige 'href'")
-	}
 	if href == "" {
 		return
 	}
@@ -201,7 +257,7 @@ func checkComponent(doc *Document, n *components.Node, diags *diag.List) {
 			return ast.WalkContinue, nil
 		}
 		switch c.(type) {
-		case *ast.Link, *ast.AutoLink, *components.Node:
+		case *ast.Link, *components.Node:
 			if cc, ok := c.(*components.Node); ok && cc.Name != "Button" {
 				return ast.WalkContinue, nil
 			}
@@ -235,6 +291,8 @@ func PlainText(n ast.Node, src []byte) string {
 				}
 			}
 			return ast.WalkSkipChildren, nil
+		case *components.InlineNode:
+			return ast.WalkSkipChildren, nil // badges and icons are decoration, not part of the title
 		case *ast.RawHTML, *east.FootnoteLink:
 			return ast.WalkSkipChildren, nil
 		}

@@ -20,10 +20,12 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/YutaViriato/Wavemark/internal/components"
 	"github.com/YutaViriato/Wavemark/internal/config"
 	"github.com/YutaViriato/Wavemark/internal/diag"
 	"github.com/YutaViriato/Wavemark/internal/i18n"
 	"github.com/YutaViriato/Wavemark/internal/markdown"
+	"github.com/YutaViriato/Wavemark/internal/sketch"
 )
 
 // Site is an immutable snapshot of a content folder.
@@ -36,14 +38,22 @@ type Site struct {
 	Assets  map[string]string
 	Nav     *NavNode
 	TopNav  []NavLink
+	Footer  Footer
 	Fonts   Fonts
 	Diags   []diag.Diagnostic
 	Built   time.Time
 	T       func(string) string
 
 	byRel    map[string]*Page
+	dirs     map[string]bool
 	navOrder []*Page
 	navDiags []diag.Diagnostic
+}
+
+// Footer is the resolved site footer.
+type Footer struct {
+	Text  string
+	Links []NavLink
 }
 
 // Fonts are the URLs of site-provided font files ("" = theme default).
@@ -144,6 +154,10 @@ func Build(opts Options) (*Site, error) {
 		return nil, err
 	}
 	var folderDiags []diag.Diagnostic
+	s.dirs = map[string]bool{}
+	for _, d := range sc.dirs {
+		s.dirs[d] = true
+	}
 	for _, a := range sc.assets {
 		s.Assets["/"+a] = filepath.Join(root, filepath.FromSlash(a))
 	}
@@ -201,7 +215,8 @@ func Build(opts Options) (*Site, error) {
 			s.checkRefs(p)
 		}
 	}
-	s.TopNav = s.resolveTopNav(siteDiags)
+	s.TopNav = s.resolveLinks(s.Config.Nav, "nav", siteDiags)
+	s.Footer = Footer{Text: s.Config.Footer.Text, Links: s.resolveLinks(s.Config.Footer.Links, "footer.links", siteDiags)}
 	s.Fonts = s.resolveFonts(siteDiags)
 
 	s.Nav = s.buildNav(pages, folders)
@@ -210,7 +225,7 @@ func Build(opts Options) (*Site, error) {
 
 	// Pages are independent once the route index exists: render in parallel.
 	parallel(s.Pages, func(p *Page) {
-		body, err := markdown.Render(p.doc, markdown.RenderOptions{URL: s.urlFor(p), T: s.T})
+		body, err := markdown.Render(p.doc, markdown.RenderOptions{URL: s.urlFor(p), T: s.T, Pages: s.pagesFor(p), Layout: p.Settings.Layout, Lang: s.Config.Lang})
 		if err != nil {
 			addDiag(p, diag.Diagnostic{Code: diag.CodeConfigInvalid, Message: "falha ao renderizar: " + err.Error()})
 		}
@@ -325,6 +340,16 @@ func loadPage(root, rel string, cascade config.Defaults) *Page {
 		p.Title = prettify(p.slug)
 		dl.Warnf(1, 1, diag.CodeTitleMissing, "Adicione 'title:' no frontmatter ou comece o corpo com '# Título'.", "página sem título; usando o nome do arquivo (%q)", p.Title)
 	}
+	if icon := p.Settings.Icon; icon != "" {
+		if _, _, ok := sketch.Lookup(icon); !ok {
+			hint := "Ícones disponíveis: " + strings.Join(sketch.Names(), ", ") + "."
+			if sug := diag.Suggest(icon, sketch.AllNames()); sug != "" {
+				hint = fmt.Sprintf("Você quis dizer %q? %s", sug, hint)
+			}
+			dl.Errorf(0, 0, diag.CodeIconUnknown, hint, "ícone desconhecido %q no frontmatter", icon)
+			p.Settings.Icon = ""
+		}
+	}
 	p.Description = p.Settings.Description
 	p.Summary = p.Description
 	if p.Summary == "" {
@@ -438,4 +463,62 @@ func parallelN(n int, fn func(i int)) {
 
 func parallel(pages []*Page, fn func(*Page)) {
 	parallelN(len(pages), func(i int) { fn(pages[i]) })
+}
+
+// pagesFor lists the pages of a folder for <PageList> on page p: the pages in
+// the folder and the index pages of its direct subfolders, excluding p.
+// Hidden pages are included: hidden only removes them from the sidebar.
+func (s *Site) pagesFor(p *Page) func(string) []components.PageInfo {
+	return func(dir string) []components.PageInfo {
+		target, ok := s.resolveDir(p, dir)
+		if !ok {
+			return nil
+		}
+		pos := map[*Page]int{}
+		for i, q := range s.navOrder {
+			pos[q] = i
+		}
+		var list []*Page
+		for _, q := range s.Pages {
+			if q == p || q.Unpublished {
+				continue
+			}
+			inDir := q.dir == target && q.slug != "index"
+			subIndex := q.slug == "index" && q.dir != target && path.Dir(q.dir) == target
+			if target == "." && q.dir != "." && q.slug == "index" && path.Dir(q.dir) == "." {
+				subIndex = true
+			}
+			if inDir || subIndex {
+				list = append(list, q)
+			}
+		}
+		sort.SliceStable(list, func(i, j int) bool {
+			pi, oki := pos[list[i]]
+			pj, okj := pos[list[j]]
+			if oki != okj {
+				return oki
+			}
+			return pi < pj
+		})
+		out := make([]components.PageInfo, 0, len(list))
+		for _, q := range list {
+			out = append(out, components.PageInfo{Title: q.Title, Description: q.Summary, Route: q.Route, Date: q.Settings.Date, Author: q.Settings.Author, Icon: q.Settings.Icon})
+		}
+		return out
+	}
+}
+
+// resolveDir maps a folder reference to a folder path relative to the root.
+func (s *Site) resolveDir(from *Page, dest string) (string, bool) {
+	dest = strings.TrimSpace(dest)
+	var clean string
+	if strings.HasPrefix(dest, "/") {
+		clean = strings.TrimPrefix(path.Clean(dest), "/")
+	} else {
+		clean = path.Join(from.dir, dest)
+	}
+	if clean == "" {
+		clean = "."
+	}
+	return clean, s.dirs[clean]
 }

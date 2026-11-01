@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/YutaViriato/Wavemark/internal/diag"
+	"github.com/YutaViriato/Wavemark/internal/sketch"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/util"
 )
@@ -21,6 +22,8 @@ const (
 	TEnum
 	TURL   // link target: route, relative .md, #anchor or http(s)/mailto URL
 	TAsset // file target: relative or absolute path to a file in the site, or https URL
+	TIcon  // name of a built-in hand-drawn icon
+	TDir   // folder of the site, relative to the page or absolute
 )
 
 func (t Type) String() string {
@@ -37,6 +40,10 @@ func (t Type) String() string {
 		return "link"
 	case TAsset:
 		return "arquivo"
+	case TIcon:
+		return "ícone"
+	case TDir:
+		return "pasta"
 	}
 	return "?"
 }
@@ -59,6 +66,7 @@ const (
 	ChildMarkdown ChildPolicy = iota // any Markdown and components
 	ChildNone                        // self-closing only
 	ChildOnly                        // only the components listed in Allowed
+	ChildText                        // inline components: plain text between the tags
 )
 
 // ChildCode is the pseudo-name for fenced code blocks in Spec.Allowed.
@@ -69,8 +77,13 @@ type RenderContext struct {
 	// URL resolves a link or asset attribute to its final href.
 	URL func(raw string) string
 	// T translates interface strings (see package i18n).
-	T   func(key string) string
-	ids map[string]int
+	T func(key string) string
+	// Pages lists the pages of a folder (for PageList).
+	Pages func(dir string) []PageInfo
+	// Layout and language of the page being rendered.
+	Layout string
+	Lang   string
+	ids    map[string]int
 	// Panels maps tab-like children to their ids, assigned by the parent.
 	Panels map[ast.Node]PanelID
 }
@@ -89,7 +102,7 @@ func NewRenderContext(url func(string) string, t func(string) string) *RenderCon
 	if t == nil {
 		t = func(s string) string { return s }
 	}
-	return &RenderContext{URL: url, T: t, ids: map[string]int{}, Panels: map[ast.Node]PanelID{}}
+	return &RenderContext{URL: url, T: t, ids: map[string]int{}, Panels: map[ast.Node]PanelID{}, Pages: func(string) []PageInfo { return nil }}
 }
 
 // NextID returns a page-unique id with the given prefix.
@@ -98,22 +111,30 @@ func (c *RenderContext) NextID(prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, c.ids[prefix])
 }
 
-// RenderFunc writes the opening (entering) or closing markup of a component.
+// RenderFunc writes the opening (entering) or closing markup of a block
+// component.
 type RenderFunc func(w util.BufWriter, source []byte, n *Node, entering bool, ctx *RenderContext)
+
+// InlineRenderFunc writes an inline component.
+type InlineRenderFunc func(w util.BufWriter, n *InlineNode, ctx *RenderContext)
 
 // Spec is the schema of a component.
 type Spec struct {
-	Name     string
-	Summary  string
-	Attrs    []AttrSpec
-	Children ChildPolicy
-	Allowed  []string // for ChildOnly
-	Parent   string   // when set, must be a direct child of this component
-	Layouts  []string // when set, only valid in these layouts
-	Preset   map[string]any
-	AliasOf  string
-	Example  string
-	Render   RenderFunc
+	Name         string
+	Summary      string
+	Attrs        []AttrSpec
+	Children     ChildPolicy
+	Allowed      []string // for ChildOnly
+	Parent       string   // when set, must be a direct child of this component
+	Layouts      []string // when set, only valid in these layouts
+	Preset       map[string]any
+	AliasOf      string
+	Inline       bool // written inside a paragraph: <Badge>New</Badge>
+	SkipChildren bool // the renderer consumes the children itself
+	Example      string
+	Render       RenderFunc
+	RenderInline InlineRenderFunc
+	check        func(c *Core, diags *diag.List)
 }
 
 func (s *Spec) attr(name string) *AttrSpec {
@@ -133,87 +154,124 @@ func (s *Spec) attrNames() []string {
 	return names
 }
 
-// LinkAttrs returns the attributes of n that point to links or assets.
-func LinkAttrs(n *Node) []struct {
+// TypedAttr is an attribute whose value must be resolved by the site.
+type TypedAttr struct {
 	Attr Attr
 	Type Type
-} {
-	var out []struct {
-		Attr Attr
-		Type Type
-	}
-	if n.Spec == nil {
+}
+
+// LinkAttrs returns the attributes of c that point to links, assets or
+// folders.
+func LinkAttrs(c *Core) []TypedAttr {
+	var out []TypedAttr
+	if c.Spec == nil {
 		return nil
 	}
-	for _, a := range n.Attrs {
-		if as := n.Spec.attr(a.Name); as != nil && (as.Type == TURL || as.Type == TAsset) {
+	for _, a := range c.Attrs {
+		if as := c.Spec.attr(a.Name); as != nil && (as.Type == TURL || as.Type == TAsset || as.Type == TDir) {
 			if _, ok := a.Value.(string); ok {
-				out = append(out, struct {
-					Attr Attr
-					Type Type
-				}{a, as.Type})
+				out = append(out, TypedAttr{a, as.Type})
 			}
 		}
 	}
 	return out
 }
 
-// Validate checks n against its schema and fills n.Spec and n.Values.
-// lineOf maps a non-component node to its 1-based file line (0 if unknown).
-func Validate(n *Node, layout string, lineOf func(ast.Node) int, diags *diag.List) {
-	spec := Lookup(n.Name)
+// lookupFor finds the schema of a block or inline component and reports
+// components used in the wrong position.
+func lookupFor(c *Core, inline bool, diags *diag.List) *Spec {
+	spec := Lookup(c.Name)
 	if spec == nil {
 		hint := "Componentes disponíveis: " + strings.Join(Names(), ", ") + ". Rode 'wavemark spec' para a referência."
-		if alt, ok := knownAliases[n.Name]; ok {
+		if alt, ok := knownAliases[c.Name]; ok {
 			hint = alt
-		} else if s := diag.Suggest(n.Name, Names()); s != "" {
+		} else if s := diag.Suggest(c.Name, Names()); s != "" {
 			hint = fmt.Sprintf("Você quis dizer <%s>? %s", s, hint)
 		}
-		diags.Errorf(n.Line, n.Col, diag.CodeComponentUnknown, hint, "componente desconhecido <%s>", n.Name)
-		return
+		diags.Errorf(c.Line, c.Col, diag.CodeComponentUnknown, hint, "componente desconhecido <%s>", c.Name)
+		return nil
 	}
-	n.Spec = spec
-	n.Values = map[string]any{}
-	for k, v := range spec.Preset {
-		n.Values[k] = v
+	if spec.Inline && !inline {
+		diags.Errorf(c.Line, c.Col, diag.CodeComponentSyntax, fmt.Sprintf("Escreva no meio do texto: Recurso novo %s.", spec.Example), "<%s> é inline e precisa ficar dentro de um parágrafo, título ou célula", c.Name)
+		return nil
 	}
+	if !spec.Inline && inline {
+		diags.Errorf(c.Line, c.Col, diag.CodeHTMLForbidden, "Componentes de bloco começam em uma linha própria, sem texto antes da tag.", "<%s> precisa ficar em uma linha própria", c.Name)
+		return nil
+	}
+	return spec
+}
 
+// validateAttrs checks attributes against the schema and fills c.Values.
+func validateAttrs(c *Core, spec *Spec, diags *diag.List) {
+	c.Spec = spec
+	c.Values = map[string]any{}
+	for k, v := range spec.Preset {
+		c.Values[k] = v
+	}
 	seen := map[string]bool{}
-	for _, a := range n.Attrs {
+	for _, a := range c.Attrs {
 		if seen[a.Name] {
-			diags.Errorf(a.Line, a.Col, diag.CodeAttrValue, "Remova uma das ocorrências.", "atributo '%s' repetido em <%s>", a.Name, n.Name)
+			diags.Errorf(a.Line, a.Col, diag.CodeAttrValue, "Remova uma das ocorrências.", "atributo '%s' repetido em <%s>", a.Name, c.Name)
 			continue
 		}
 		seen[a.Name] = true
 		as := spec.attr(a.Name)
 		if as == nil {
 			hint := attrHint(spec)
-			if s := diag.Suggest(a.Name, spec.attrNames()); s != "" {
+			if alt, ok := attrAliases[spec.Name+"."+a.Name]; ok {
+				hint = alt + " " + hint
+			} else if s := diag.Suggest(a.Name, spec.attrNames()); s != "" {
 				hint = fmt.Sprintf("Você quis dizer '%s'? %s", s, hint)
 			}
-			diags.Errorf(a.Line, a.Col, diag.CodeAttrUnknown, hint, "atributo desconhecido '%s' em <%s>", a.Name, n.Name)
+			diags.Errorf(a.Line, a.Col, diag.CodeAttrUnknown, hint, "atributo desconhecido '%s' em <%s>", a.Name, c.Name)
 			continue
 		}
 		if _, preset := spec.Preset[a.Name]; preset {
-			diags.Errorf(a.Line, a.Col, diag.CodeAttrUnknown, fmt.Sprintf("<%s> já define %s=%q; use <%s> para escolher outro valor.", n.Name, a.Name, spec.Preset[a.Name], spec.AliasOf), "atributo '%s' não pode ser usado em <%s>", a.Name, n.Name)
+			diags.Errorf(a.Line, a.Col, diag.CodeAttrUnknown, fmt.Sprintf("<%s> já define %s=%q; use <%s> para escolher outro valor.", c.Name, a.Name, spec.Preset[a.Name], spec.AliasOf), "atributo '%s' não pode ser usado em <%s>", a.Name, c.Name)
 			continue
 		}
-		if v, ok := convert(n, a, as, diags); ok {
-			n.Values[a.Name] = v
+		if v, ok := convert(c, a, as, diags); ok {
+			c.Values[a.Name] = v
 		}
 	}
 	for _, as := range spec.Attrs {
-		if _, ok := n.Values[as.Name]; ok {
+		if _, ok := c.Values[as.Name]; ok {
 			continue
 		}
 		if as.Required {
-			diags.Errorf(n.Line, n.Col, diag.CodeAttrMissing, fmt.Sprintf("Exemplo: %s", spec.Example), "<%s> exige o atributo '%s'", n.Name, as.Name)
+			diags.Errorf(c.Line, c.Col, diag.CodeAttrMissing, fmt.Sprintf("Exemplo: %s", spec.Example), "<%s> exige o atributo '%s'", c.Name, as.Name)
 			continue
 		}
 		if as.Default != nil {
-			n.Values[as.Name] = as.Default
+			c.Values[as.Name] = as.Default
 		}
 	}
+}
+
+// ValidateInline checks an inline component.
+func ValidateInline(n *InlineNode, diags *diag.List) {
+	spec := lookupFor(&n.Core, true, diags)
+	if spec == nil {
+		return
+	}
+	validateAttrs(&n.Core, spec, diags)
+	if spec.Children == ChildNone && strings.TrimSpace(n.Content) != "" {
+		diags.Errorf(n.Line, n.Col, diag.CodeComponentChild, fmt.Sprintf("Use a forma autofechada: %s", spec.Example), "<%s> não aceita conteúdo", n.Name)
+	}
+	if spec.Children == ChildText && strings.TrimSpace(n.Content) == "" {
+		diags.Errorf(n.Line, n.Col, diag.CodeComponentChild, fmt.Sprintf("Exemplo: %s", spec.Example), "<%s> está vazio", n.Name)
+	}
+}
+
+// Validate checks n against its schema and fills n.Spec and n.Values.
+// lineOf maps a non-component node to its 1-based file line (0 if unknown).
+func Validate(n *Node, layout string, lineOf func(ast.Node) int, diags *diag.List) {
+	spec := lookupFor(&n.Core, false, diags)
+	if spec == nil {
+		return
+	}
+	validateAttrs(&n.Core, spec, diags)
 
 	if len(spec.Layouts) > 0 && !slices.Contains(spec.Layouts, layout) {
 		diags.Errorf(n.Line, n.Col, diag.CodeComponentLayout, fmt.Sprintf("Defina 'layout: %s' no frontmatter ou remova o componente.", spec.Layouts[0]), "<%s> só pode ser usado no layout %s (a página usa '%s')", n.Name, strings.Join(spec.Layouts, " ou "), layout)
@@ -275,42 +333,64 @@ func attrHint(spec *Spec) string {
 	return "Atributos válidos: " + strings.Join(spec.attrNames(), ", ") + "."
 }
 
-func convert(n *Node, a Attr, as *AttrSpec, diags *diag.List) (any, bool) {
+func convert(c *Core, a Attr, as *AttrSpec, diags *diag.List) (any, bool) {
 	bad := func(hint, format string, args ...any) (any, bool) {
 		diags.Errorf(a.Line, a.Col, diag.CodeAttrValue, hint, format, args...)
 		return nil, false
 	}
 	switch as.Type {
-	case TString, TURL, TAsset, TEnum:
+	case TString, TURL, TAsset, TEnum, TIcon, TDir:
 		s, ok := a.Value.(string)
 		if !ok || a.Form != FormString {
-			return bad(fmt.Sprintf(`Use aspas: %s="..."`, a.Name), "'%s' em <%s> precisa ser um texto entre aspas", a.Name, n.Name)
+			return bad(fmt.Sprintf(`Use aspas: %s="..."`, a.Name), "'%s' em <%s> precisa ser um texto entre aspas", a.Name, c.Name)
 		}
 		s = strings.TrimSpace(s)
 		if as.Required && s == "" {
-			return bad("Preencha o valor.", "'%s' em <%s> está vazio", a.Name, n.Name)
+			return bad("Preencha o valor.", "'%s' em <%s> está vazio", a.Name, c.Name)
 		}
 		if as.Type == TEnum && !slices.Contains(as.Enum, s) {
 			hint := "Valores aceitos: " + strings.Join(as.Enum, ", ") + "."
-			if sug := diag.Suggest(s, as.Enum); sug != "" {
+			if alt, ok := valueAliases[c.Spec.Name+"."+a.Name+"="+s]; ok {
+				hint = alt + " " + hint
+			} else if sug := diag.Suggest(s, as.Enum); sug != "" {
 				hint = fmt.Sprintf("Você quis dizer %q? %s", sug, hint)
 			}
-			return bad(hint, "valor %q inválido para '%s' em <%s>", s, a.Name, n.Name)
+			return bad(hint, "valor %q inválido para '%s' em <%s>", s, a.Name, c.Name)
+		}
+		if as.Type == TIcon {
+			if _, _, ok := sketch.Lookup(s); !ok {
+				hint := "Ícones disponíveis: " + strings.Join(sketch.Names(), ", ") + "."
+				if sug := diag.Suggest(s, sketch.AllNames()); sug != "" {
+					hint = fmt.Sprintf("Você quis dizer %q? %s", sug, hint)
+				}
+				diags.Errorf(a.Line, a.Col, diag.CodeIconUnknown, hint, "ícone desconhecido %q em <%s>", s, c.Name)
+				return nil, false
+			}
 		}
 		return s, true
 	case TBool:
 		if b, ok := a.Value.(bool); ok {
 			return b, true
 		}
-		return bad(fmt.Sprintf("Escreva só '%s' para verdadeiro, ou %s={false}.", a.Name, a.Name), "'%s' em <%s> precisa ser booleano", a.Name, n.Name)
+		if s, ok := a.Value.(string); ok && (s == "true" || s == "false") {
+			return s == "true", true // open="true" is unambiguous enough
+		}
+		return bad(fmt.Sprintf("Escreva só '%s' para verdadeiro, ou %s={false}.", a.Name, a.Name), "'%s' em <%s> precisa ser booleano", a.Name, c.Name)
 	case TInt:
 		f, ok := a.Value.(float64)
-		if !ok || a.Form != FormJSON || f != math.Trunc(f) {
-			return bad(fmt.Sprintf("Use chaves: %s={2}", a.Name), "'%s' em <%s> precisa ser um inteiro entre chaves", a.Name, n.Name)
+		if s, isStr := a.Value.(string); isStr {
+			// cols="3" is a common habit; accept digits written as text.
+			var n int
+			if _, err := fmt.Sscanf(s, "%d", &n); err == nil && fmt.Sprint(n) == strings.TrimSpace(s) {
+				f, ok = float64(n), true
+			}
+		}
+		if !ok || f != math.Trunc(f) {
+			return bad(fmt.Sprintf("Use um número inteiro: %s={2}", a.Name), "'%s' em <%s> precisa ser um inteiro", a.Name, c.Name)
 		}
 		i := int(f)
 		if (as.Min != 0 || as.Max != 0) && (i < as.Min || i > as.Max) {
-			return bad("", "'%s' em <%s> precisa estar entre %d e %d (recebeu %d)", a.Name, n.Name, as.Min, as.Max, i)
+			return bad("", "'%s' em <%s> precisa estar entre %d e %d (recebeu %d)", a.Name, c.Name, as.Min, as.Max, i)
 		}
 		return i, true
 	}

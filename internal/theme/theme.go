@@ -16,8 +16,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/YutaViriato/Wavemark/internal/components"
 	"github.com/YutaViriato/Wavemark/internal/diag"
 	"github.com/YutaViriato/Wavemark/internal/icons"
+	"github.com/YutaViriato/Wavemark/internal/markdown"
 	"github.com/YutaViriato/Wavemark/internal/site"
 )
 
@@ -89,6 +91,8 @@ func New() (*Theme, error) {
 	funcs := template.FuncMap{
 		"asset": t.URL,
 		"icon":  icons.HTML,
+		"add":   func(a, b int) int { return a + b },
+		"sub":   func(a, b int) int { return a - b },
 		"t":     func(string) string { return "" }, // replaced per render
 		"activeTop": func(p *site.Page, href string) bool {
 			if p == nil || href == "" || !strings.HasPrefix(href, "/") {
@@ -153,7 +157,11 @@ type pageData struct {
 	Diags       []diag.Diagnostic
 	CustomFonts string
 	Nav         template.HTML
+	Date        *dateView
+	Chapters    []markdown.Heading
 }
+
+type dateView struct{ ISO, Text string }
 
 // Options for rendering.
 type Options struct {
@@ -197,6 +205,17 @@ func (t *Theme) data(s *site.Site, p *site.Page, opts Options) pageData {
 	d.Sidebar = d.Layout == "docs"
 	d.ShowTOC = d.Layout == "docs" && p.Settings.TOC && len(p.TOC()) > 0
 	d.Diags = p.Diags
+	if !p.Settings.Date.IsZero() {
+		d.Date = &dateView{ISO: p.Settings.Date.Format("2006-01-02"), Text: components.FormatDate(p.Settings.Date, s.Config.Lang)}
+	}
+	if d.Layout == "article" {
+		for _, h := range p.Headings {
+			if h.Level == 2 {
+				d.Chapters = append(d.Chapters, h)
+			}
+		}
+		d.ShowTOC = p.Settings.TOC && len(d.Chapters) > 0
+	}
 	if d.Sidebar {
 		d.Nav = t.sidebar(s, p)
 	}
@@ -266,8 +285,9 @@ func writeNav(b *strings.Builder, n *site.NavNode) {
 func (t *Theme) RenderPage(s *site.Site, p *site.Page, opts Options) ([]byte, error) {
 	d := t.data(s, p, opts)
 	name := "docs"
-	if d.Layout == "landing" {
-		name = "landing"
+	switch d.Layout {
+	case "landing", "article":
+		name = d.Layout
 	}
 	return t.execute(name, s, d)
 }
