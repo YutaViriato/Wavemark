@@ -11,14 +11,14 @@ Wavemark turns a folder of Markdown files into a website. It is a single binary 
 <Tabs>
 <Tab title="Linux and macOS">
 ```bash
-curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+curl -fsSL https://wavemark.viriato.site/install.sh | sh
 export PATH="$HOME/.local/bin:$PATH"
 wavemark version
 ```
 </Tab>
 <Tab title="Windows">
 ```powershell
-irm https://yutaviriato.github.io/Wavemark/install.ps1 | iex
+irm https://wavemark.viriato.site/install.ps1 | iex
 wavemark version
 ```
 </Tab>

@@ -10,14 +10,14 @@ Wavemark is a single binary. The theme, fonts and scripts are embedded in it, so
 <Tabs>
 <Tab title="Linux and macOS">
 ```bash
-curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+curl -fsSL https://wavemark.viriato.site/install.sh | sh
 ```
 
 The binary goes to `~/.local/bin`. If that folder is not on your `PATH`, the script prints the line to add.
 </Tab>
 <Tab title="Windows">
 ```powershell
-irm https://yutaviriato.github.io/Wavemark/install.ps1 | iex
+irm https://wavemark.viriato.site/install.ps1 | iex
 ```
 
 The binary goes to `%LOCALAPPDATA%\wavemark`, which is added to your user `PATH`.

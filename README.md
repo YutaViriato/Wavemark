@@ -5,13 +5,13 @@ Wavemark turns a folder of Markdown files into a website, in the visual language
 ## Install
 
 ```bash
-curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+curl -fsSL https://wavemark.viriato.site/install.sh | sh
 ```
 
 On Windows (PowerShell):
 
 ```powershell
-irm https://yutaviriato.github.io/Wavemark/install.ps1 | iex
+irm https://wavemark.viriato.site/install.ps1 | iex
 ```
 
 Or download an archive from [Releases](https://github.com/YutaViriato/Wavemark/releases).
@@ -42,13 +42,13 @@ It opens a page listing every Markdown file (recently changed first, then by fol
 
 Give your agent one sentence:
 
-> Use Wavemark from https://yutaviriato.github.io/Wavemark/install-wavemark and create a site about X.
+> Use Wavemark from https://wavemark.viriato.site/install-wavemark and create a site about X.
 
 That page tells the agent how to install Wavemark, read the reference, write pages and validate them with `wavemark check --json` until there are no errors.
 
 ## Documentation
 
-The documentation is a Wavemark site in [`site/`](site/), published at https://yutaviriato.github.io/Wavemark/.
+The documentation is a Wavemark site in [`site/`](site/), published at https://wavemark.viriato.site/.
 
 ## Development
 

@@ -54,7 +54,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - run: curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+      - run: curl -fsSL https://wavemark.viriato.site/install.sh | sh
       - run: ~/.local/bin/wavemark build my-site --out dist
       - uses: actions/upload-pages-artifact@v3
         with:

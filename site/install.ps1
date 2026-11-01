@@ -1,6 +1,6 @@
 # Installs the wavemark binary on Windows.
 #
-#   irm https://yutaviriato.github.io/Wavemark/install.ps1 | iex
+#   irm https://wavemark.viriato.site/install.ps1 | iex
 #
 # Environment:
 #   WAVEMARK_VERSION       version to install, e.g. v0.1.0 (default: latest)

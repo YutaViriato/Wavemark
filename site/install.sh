@@ -1,7 +1,7 @@
 #!/bin/sh
 # Installs the wavemark binary.
 #
-#   curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+#   curl -fsSL https://wavemark.viriato.site/install.sh | sh
 #
 # Environment:
 #   WAVEMARK_VERSION       version to install, e.g. v0.1.0 (default: latest)
@@ -19,7 +19,7 @@ fail() { say "error: $*"; exit 1; }
 case "$(uname -s)" in
   Linux) os=linux ;;
   Darwin) os=darwin ;;
-  MINGW* | MSYS* | CYGWIN*) fail "on Windows, run in PowerShell: irm https://yutaviriato.github.io/Wavemark/install.ps1 | iex" ;;
+  MINGW* | MSYS* | CYGWIN*) fail "on Windows, run in PowerShell: irm https://wavemark.viriato.site/install.ps1 | iex" ;;
   *) fail "unsupported system: $(uname -s)" ;;
 esac
 case "$(uname -m)" in

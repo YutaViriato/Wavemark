@@ -43,7 +43,7 @@ Cards, tabs, steps and callouts as JSX-style tags, with no JavaScript in your co
 
 <CodeGroup>
 ```bash title="Install"
-curl -fsSL https://yutaviriato.github.io/Wavemark/install.sh | sh
+curl -fsSL https://wavemark.viriato.site/install.sh | sh
 ```
 ```bash title="Start"
 wavemark init my-site

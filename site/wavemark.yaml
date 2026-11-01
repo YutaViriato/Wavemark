@@ -3,7 +3,7 @@ description: A runtime that turns a folder of Markdown into a website, in the vi
 lang: en
 logo:
   text: Wavemark Docs
-baseURL: https://yutaviriato.github.io/Wavemark
+baseURL: https://wavemark.viriato.site
 nav:
   - label: Install
     href: /install-wavemark
